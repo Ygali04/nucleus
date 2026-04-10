@@ -1,0 +1,363 @@
+/* Nucleus — visual system aligned to trupeer.ai aesthetic
+   Clean white backgrounds, indigo/blue accents, soft shadows,
+   moderate rounded corners, no glass morphism. */
+
+:root {
+  --nucleus-bg:            #ffffff;
+  --nucleus-surface:       #fafafa;
+  --nucleus-surface-2:     #f5f6f8;
+  --nucleus-border:        #e6e8ec;
+  --nucleus-text:          #0f172a;
+  --nucleus-text-muted:    #475569;
+  --nucleus-text-subtle:   #64748b;
+  --nucleus-primary:       #4f46e5;
+  --nucleus-primary-hover: #4338ca;
+  --nucleus-primary-soft:  #eef2ff;
+  --nucleus-accent:        #06b6d4;
+  --nucleus-radius:        12px;
+  --nucleus-radius-lg:     16px;
+  --nucleus-shadow-sm:     0 1px 2px rgba(15, 23, 42, 0.04);
+  --nucleus-shadow-md:     0 4px 16px rgba(15, 23, 42, 0.06);
+  --nucleus-shadow-lg:     0 10px 32px rgba(15, 23, 42, 0.08);
+}
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:              #4f46e5;
+  --md-primary-fg-color--light:       #6366f1;
+  --md-primary-fg-color--dark:        #4338ca;
+  --md-accent-fg-color:               #4f46e5;
+  --md-default-bg-color:              #ffffff;
+  --md-default-fg-color:              #0f172a;
+  --md-default-fg-color--light:       #475569;
+  --md-default-fg-color--lighter:     #94a3b8;
+  --md-typeset-a-color:               #4f46e5;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:              #818cf8;
+  --md-primary-fg-color--light:       #a5b4fc;
+  --md-primary-fg-color--dark:        #6366f1;
+  --md-accent-fg-color:               #a5b4fc;
+  --md-default-bg-color:              #0b1020;
+  --md-default-fg-color:              #e2e8f0;
+  --md-default-fg-color--light:       #cbd5e1;
+  --md-typeset-a-color:               #a5b4fc;
+}
+
+/* Base typography — tightened headings, generous body */
+.md-typeset {
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4 {
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset h1 {
+  font-size: 2.6rem;
+  line-height: 1.1;
+  margin-top: 0;
+  margin-bottom: 0.8em;
+  letter-spacing: -0.03em;
+}
+
+.md-typeset h2 {
+  font-size: 1.75rem;
+  line-height: 1.25;
+  margin-top: 2em;
+}
+
+.md-typeset h3 {
+  font-size: 1.25rem;
+  line-height: 1.35;
+  margin-top: 1.6em;
+}
+
+.md-typeset p,
+.md-typeset li {
+  font-size: 0.94rem;
+  line-height: 1.7;
+}
+
+/* Nav tabs: tighter, underline-on-hover */
+.md-tabs {
+  background-color: var(--md-default-bg-color);
+  border-bottom: 1px solid var(--nucleus-border);
+}
+[data-md-color-scheme="slate"] .md-tabs {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+.md-tabs__list {
+  padding-left: 0;
+}
+.md-tabs__link {
+  color: var(--md-default-fg-color--light);
+  opacity: 1;
+  font-weight: 500;
+}
+.md-tabs__link--active,
+.md-tabs__link:hover {
+  color: var(--md-primary-fg-color);
+}
+
+/* Header: subtle border instead of shadow */
+.md-header {
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  box-shadow: none;
+  border-bottom: 1px solid var(--nucleus-border);
+}
+[data-md-color-scheme="slate"] .md-header {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+.md-header__title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Sidebar titles — stronger hierarchy */
+.md-nav__title {
+  font-weight: 600;
+  color: var(--md-default-fg-color);
+}
+
+/* Hero block — used on index.md */
+.nucleus-hero {
+  padding: 3rem 0 1rem 0;
+  border-bottom: 1px solid var(--nucleus-border);
+  margin-bottom: 2rem;
+}
+[data-md-color-scheme="slate"] .nucleus-hero {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+.nucleus-hero .eyebrow {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--md-primary-fg-color);
+  background: var(--nucleus-primary-soft);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 1.25rem;
+}
+[data-md-color-scheme="slate"] .nucleus-hero .eyebrow {
+  background: rgba(99, 102, 241, 0.15);
+}
+.nucleus-hero h1 {
+  font-size: 3rem !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.035em !important;
+  margin-bottom: 1rem !important;
+}
+@media (max-width: 768px) {
+  .nucleus-hero h1 { font-size: 2.2rem !important; }
+}
+.nucleus-hero .subhead {
+  font-size: 1.2rem;
+  line-height: 1.55;
+  color: var(--md-default-fg-color--light);
+  max-width: 48rem;
+  margin-bottom: 2rem;
+}
+
+/* Feature cards (Material grid cards) — restyled to match TruPeer */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > :is(ol, ul) > li,
+.md-typeset .grid > .card {
+  border-radius: var(--nucleus-radius-lg);
+  border: 1px solid var(--nucleus-border);
+  background: var(--md-default-bg-color);
+  box-shadow: var(--nucleus-shadow-sm);
+  padding: 1.5rem;
+  transition: box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
+}
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li,
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > :is(ol, ul) > li,
+[data-md-color-scheme="slate"] .md-typeset .grid > .card {
+  border-color: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+}
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid.cards > :is(ol, ul) > li:hover,
+.md-typeset .grid > .card:hover {
+  box-shadow: var(--nucleus-shadow-md);
+  border-color: var(--md-primary-fg-color--light);
+  transform: translateY(-1px);
+}
+.md-typeset .grid.cards > ul > li > hr,
+.md-typeset .grid.cards > :is(ol, ul) > li > hr {
+  border: none;
+  border-top: 1px solid var(--nucleus-border);
+  margin: 0.75rem 0 0.75rem 0;
+}
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li > hr {
+  border-top-color: rgba(255,255,255,0.08);
+}
+.md-typeset .grid.cards .twemoji.lg,
+.md-typeset .grid.cards span.twemoji.lg {
+  font-size: 1.75rem;
+  color: var(--md-primary-fg-color);
+}
+
+/* Tables — cleaner borders, softer zebra */
+.md-typeset table:not([class]) {
+  border-radius: var(--nucleus-radius);
+  border: 1px solid var(--nucleus-border);
+  box-shadow: none;
+  font-size: 0.88rem;
+}
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) {
+  border-color: rgba(255,255,255,0.08);
+}
+.md-typeset table:not([class]) th {
+  background: var(--nucleus-surface-2);
+  font-weight: 600;
+  color: var(--md-default-fg-color);
+  border-bottom: 1px solid var(--nucleus-border);
+}
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background: rgba(255,255,255,0.04);
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+.md-typeset table:not([class]) tr:hover td {
+  background: var(--nucleus-surface);
+}
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) tr:hover td {
+  background: rgba(255,255,255,0.02);
+}
+
+/* Blockquotes — tight left border, muted background */
+.md-typeset blockquote {
+  border-left: 3px solid var(--md-primary-fg-color);
+  background: var(--nucleus-primary-soft);
+  padding: 1rem 1.25rem;
+  border-radius: 0 var(--nucleus-radius) var(--nucleus-radius) 0;
+  color: var(--md-default-fg-color);
+  margin: 1.5rem 0;
+}
+[data-md-color-scheme="slate"] .md-typeset blockquote {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--md-default-fg-color);
+}
+
+/* Inline code & code blocks */
+.md-typeset code {
+  background: var(--nucleus-surface-2);
+  padding: 0.15em 0.4em;
+  border-radius: 6px;
+  font-size: 0.88em;
+}
+[data-md-color-scheme="slate"] .md-typeset code {
+  background: rgba(255,255,255,0.06);
+}
+.md-typeset pre > code {
+  border-radius: var(--nucleus-radius);
+}
+
+/* Admonitions — flatten, use our palette */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: var(--nucleus-radius);
+  border: 1px solid var(--nucleus-border);
+  box-shadow: none;
+  font-size: 0.9rem;
+}
+[data-md-color-scheme="slate"] .md-typeset .admonition,
+[data-md-color-scheme="slate"] .md-typeset details {
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* Pills used inline for "New", "v1", etc */
+.pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--nucleus-primary-soft);
+  color: var(--md-primary-fg-color);
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+[data-md-color-scheme="slate"] .pill {
+  background: rgba(99, 102, 241, 0.18);
+}
+
+/* Mermaid diagrams — center, give them room */
+.md-typeset .mermaid {
+  text-align: center;
+  background: var(--nucleus-surface);
+  border: 1px solid var(--nucleus-border);
+  border-radius: var(--nucleus-radius-lg);
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+[data-md-color-scheme="slate"] .md-typeset .mermaid {
+  background: rgba(255,255,255,0.02);
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* Section spacing */
+.md-main__inner {
+  margin-top: 1.5rem;
+}
+.md-content__inner {
+  padding-top: 0;
+}
+
+/* Footer */
+.md-footer {
+  background: var(--nucleus-surface);
+  color: var(--md-default-fg-color--light);
+  border-top: 1px solid var(--nucleus-border);
+}
+[data-md-color-scheme="slate"] .md-footer {
+  background: rgba(255,255,255,0.02);
+  border-top-color: rgba(255,255,255,0.08);
+}
+.md-footer-meta {
+  background: var(--nucleus-surface);
+}
+[data-md-color-scheme="slate"] .md-footer-meta {
+  background: rgba(255,255,255,0.02);
+}
+
+/* CTA link style */
+.md-typeset a.md-button,
+.md-typeset .nucleus-cta {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.3rem;
+  border-radius: var(--nucleus-radius);
+  background: var(--md-primary-fg-color);
+  color: #ffffff !important;
+  border: 1px solid var(--md-primary-fg-color);
+  transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+  text-decoration: none !important;
+}
+.md-typeset a.md-button:hover,
+.md-typeset .nucleus-cta:hover {
+  background: var(--nucleus-primary-hover);
+  box-shadow: var(--nucleus-shadow-md);
+  transform: translateY(-1px);
+}
+.md-typeset a.md-button--secondary {
+  background: var(--md-default-bg-color);
+  color: var(--md-primary-fg-color) !important;
+  border-color: var(--nucleus-border);
+}
+.md-typeset a.md-button--secondary:hover {
+  background: var(--nucleus-primary-soft);
+  border-color: var(--md-primary-fg-color);
+}

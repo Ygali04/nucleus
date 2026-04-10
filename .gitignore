@@ -1,0 +1,41 @@
+# mkdocs build output
+site/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+*.egg
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+.pnpm-store/
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# Secrets
+.env
+.env.*
+!.env.example
+secrets/
+
+# Claude / local tooling
+.claude/cache/
+
+# Misc
+*.log

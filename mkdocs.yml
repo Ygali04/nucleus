@@ -1,0 +1,112 @@
+site_name: Nucleus
+site_description: The recursive neuromarketing video engine. Brand knowledge in. Neuro-scored, edited, persona-targeted variants out.
+site_author: Yahvin Gali
+copyright: "Nucleus &middot; 2026"
+
+docs_dir: docs
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    logo: material/atom-variant
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - content.tooltips
+
+nav:
+  - Home: index.md
+  - The product:
+      - Concept: concept.md
+      - Features: features.md
+      - How it works: how-it-works.md
+      - Output archetypes: archetypes.md
+  - Why it works:
+      - Research foundation: foundation.md
+      - Competitive landscape: landscape.md
+  - Delivery:
+      - Integration: integration.md
+      - Roadmap: roadmap.md
+  - Reference:
+      - UGC primer: appendix/ugc-primer.md
+      - Neuromarketing primer: appendix/neuromarketing-primer.md
+      - Brand context: appendix/trupeer-keywords.md
+      - Post-meeting plan: POST_MEETING_PLAN.md
+      - Session prompt: NEXT_SESSION_PROMPT.md
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.caret
+  - pymdownx.mark
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+plugins:
+  - search
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  generator: false
+  social:
+    - icon: material/web
+      link: https://trupeer.ai
