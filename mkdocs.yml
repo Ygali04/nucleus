@@ -59,10 +59,80 @@ nav:
   - Delivery:
       - Integration: integration.md
       - Roadmap: roadmap.md
-  - Reference:
+  - System design:
+      - Overview: design/index.md
+      - Data model: design/data-model.md
+      - Orchestrator: design/orchestrator.md
+      - State machine: design/state-machine.md
+      - Tenant isolation: design/tenant-isolation.md
+      - Authentication: design/auth.md
+      - Observability: design/observability.md
+      - CI/CD: design/cicd.md
+      - Security: design/security.md
+      - Rate limiting: design/rate-limiting.md
+      - Dataflow: design/dataflow.md
+      - Failure modes: design/failure-modes.md
+  - Stack:
+      - Overview: stack/index.md
+      - Composition: stack/composition.md
+      - Diffusion video: stack/diffusion-video.md
+      - Avatar, voice, music: stack/avatar-voice-music.md
+      - Decisions per archetype: stack/decisions.md
+  - Ingestion:
+      - Overview: ingestion/index.md
+      - Brand KB schema: ingestion/brand-kb-schema.md
+      - Connectors: ingestion/connectors.md
+      - RAG query pattern: ingestion/rag-query-pattern.md
+      - MCP integration: ingestion/mcp-integration.md
+      - Research pipeline: ingestion/research-pipeline.md
+  - Brand:
+      - Overview: brand/index.md
+      - Naming: brand/naming.md
+      - Visual identity: brand/visual-identity.md
+      - Voice and tone: brand/voice-and-tone.md
+      - In-product brand: brand/in-product-brand.md
+  - Go-to-market:
+      - Overview: gtm/index.md
+      - Pricing: gtm/pricing.md
+      - Packaging: gtm/packaging.md
+      - Launch sequence: gtm/launch.md
+      - Case studies: gtm/case-studies.md
+      - Sales enablement: gtm/sales-enablement.md
+  - Compliance:
+      - Overview: compliance/index.md
+      - TRIBE v2 license: compliance/license-tribe-v2.md
+      - FTC testimonials: compliance/ftc-synthetic-testimonials.md
+      - EU AI Act: compliance/eu-ai-act.md
+      - SOC 2 inheritance: compliance/soc2.md
+      - GDPR: compliance/gdpr.md
+      - Output IP and likeness: compliance/output-ip.md
+  - Research & R&D:
+      - Overview: research/index.md
+      - TRIBE v2 deep dive: research/tribe-v2-deep-dive.md
+      - Alternative models: research/alternative-models.md
+      - Benchmark datasets: research/datasets.md
+      - Evaluation methodology: research/evaluation-methodology.md
+      - Benchmarks: research/benchmarks.md
+      - Honest gaps: research/honest-gaps.md
+      - Research roadmap: research/research-roadmap.md
+      - Internal experiments: research/internal-experiments.md
+      - Fallback path: research/fallback-path.md
+  - Runbooks:
+      - Overview: runbooks/index.md
+      - Onboarding a tenant: runbooks/onboarding-tenant.md
+      - Brand KB ingestion: runbooks/brand-kb-ingestion.md
+      - Incident response: runbooks/incident-response.md
+      - Cost monitoring: runbooks/cost-monitoring.md
+      - Provider failure: runbooks/provider-failure.md
+      - Stuck job recovery: runbooks/stuck-job-recovery.md
+      - Tenant deletion: runbooks/tenant-deletion.md
+  - Appendix:
       - UGC primer: appendix/ugc-primer.md
       - Neuromarketing primer: appendix/neuromarketing-primer.md
       - Brand context: appendix/trupeer-keywords.md
+      - Canonical ICPs: appendix/icp-library.md
+      - Glossary: appendix/glossary.md
+      - Changelog: appendix/changelog.md
       - Post-meeting plan: POST_MEETING_PLAN.md
       - Session prompt: NEXT_SESSION_PROMPT.md
 
