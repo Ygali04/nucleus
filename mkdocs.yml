@@ -117,6 +117,7 @@ nav:
       - Research roadmap: research/research-roadmap.md
       - Internal experiments: research/internal-experiments.md
       - Fallback path: research/fallback-path.md
+      - Reading list: research/reading-list.md
   - Runbooks:
       - Overview: runbooks/index.md
       - Onboarding a tenant: runbooks/onboarding-tenant.md
@@ -175,6 +176,9 @@ plugins:
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/tasklist.js
 
 extra:
   generator: false
