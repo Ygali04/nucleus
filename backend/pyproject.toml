@@ -1,15 +1,18 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nucleus-backend"
+name = "nucleus"
 version = "0.1.0"
-description = "Nucleus recursive neuromarketing video engine — backend"
+description = "Nucleus recursive neuromarketing video engine"
 requires-python = ">=3.11"
 dependencies = [
-    "httpx>=0.27",
-    "pydantic>=2.0",
+    "pydantic>=2.0,<3.0",
+    "fal-client>=0.5.0",
+    "httpx>=0.27.0",
+    "elevenlabs>=1.0,<2",
+    "google-cloud-aiplatform>=1.60,<2",
 ]
 
 [project.optional-dependencies]
@@ -18,8 +21,10 @@ dev = [
     "pytest-asyncio>=0.24",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nucleus*"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-
-[tool.setuptools.packages.find]
-include = ["nucleus*"]
+testpaths = ["tests"]
