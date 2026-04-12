@@ -9,15 +9,20 @@ Quick start::
     result = await video.generate("A cat riding a skateboard", duration_s=5.0)
 """
 
-from nucleus.providers.base import AudioProvider, MusicProvider, VideoProvider
+from nucleus.providers._types import AudioProvider, AudioResult, MusicProvider
+from nucleus.providers.base import VideoProvider
+from nucleus.providers.elevenlabs_provider import ElevenLabsProvider
+from nucleus.providers.lyria import LyriaProvider
 from nucleus.providers.registry import ProviderRegistry, get_registry
-from nucleus.providers.types import AudioResult, GenerationResult, JobStatus, ProviderJobStatus
+from nucleus.providers.types import GenerationResult, JobStatus, ProviderJobStatus
 
 __all__ = [
     "AudioProvider",
     "AudioResult",
+    "ElevenLabsProvider",
     "GenerationResult",
     "JobStatus",
+    "LyriaProvider",
     "MusicProvider",
     "ProviderJobStatus",
     "ProviderRegistry",
