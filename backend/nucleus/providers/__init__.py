@@ -13,7 +13,9 @@ from nucleus.providers._types import AudioProvider, AudioResult, MusicProvider
 from nucleus.providers.base import VideoProvider
 from nucleus.providers.elevenlabs_provider import ElevenLabsProvider
 from nucleus.providers.lyria import LyriaProvider
+from nucleus.providers.magihuman import MagiHumanProvider
 from nucleus.providers.registry import ProviderRegistry, get_registry
+from nucleus.providers.seedance import SeedanceProvider
 from nucleus.providers.types import GenerationResult, JobStatus, ProviderJobStatus
 
 __all__ = [
@@ -23,9 +25,11 @@ __all__ = [
     "GenerationResult",
     "JobStatus",
     "LyriaProvider",
+    "MagiHumanProvider",
     "MusicProvider",
     "ProviderJobStatus",
     "ProviderRegistry",
+    "SeedanceProvider",
     "VideoProvider",
     "get_registry",
 ]
