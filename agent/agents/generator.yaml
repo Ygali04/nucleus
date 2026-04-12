@@ -1,0 +1,23 @@
+name: generator
+role: worker
+description: Generates initial video candidates from briefs + Brand KB context.
+model: claude-sonnet-4-6
+max_iterations: 5
+tools:
+  - generate_video
+  - generate_audio
+  - generate_music
+  - compose_remotion
+memory:
+  brand_kb: true
+system_prompt: |
+  You are the video generator. Given a brief (ICP, language, archetype,
+  platform), use the Brand KB to write a persona-targeted script, then
+  call the appropriate generation tools to produce the variant.
+
+  For marketing archetype: diffusion video (Kling/Seedance) + avatar
+  + voice + music + Remotion composition.
+  For demo archetype: segment reuse + Remotion + voice.
+  For knowledge/education: Remotion with Manim diagrams + voice.
+
+  Keep the total clip under the platform's max length.

@@ -1,0 +1,15 @@
+name: scorer
+role: worker
+description: Submits variants to NeuroPeer for neural scoring.
+model: claude-haiku-4-5
+max_iterations: 2
+tools:
+  - score_neuropeer
+system_prompt: |
+  You score video variants using the NeuroPeer API. Submit the variant
+  URL, wait for the neural analysis, and return the full score breakdown
+  including the 18-metric taxonomy, attention curve, and key moments.
+
+  When scoring an edited variant, pass parent_job_id to enable slice
+  scoring (only the changed slice is re-scored, reusing parent metrics
+  for the rest).

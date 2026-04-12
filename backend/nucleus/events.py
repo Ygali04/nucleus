@@ -7,7 +7,9 @@ without Redis running.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
+from uuid import uuid4
 
 # ---------------------------------------------------------------------------
 # In-process event bus (swap for Redis pubsub in production)
@@ -15,9 +17,13 @@ from typing import Any
 
 _event_log: list[dict[str, Any]] = []
 
+# job_id -> {subscriber_id: callback}
+_subscribers: dict[str, dict[str, Callable[[dict[str, Any]], None]]] = {}
+
 
 def reset() -> None:
     _event_log.clear()
+    _subscribers.clear()
 
 
 def get_events(job_id: str | None = None) -> list[dict[str, Any]]:
@@ -28,6 +34,25 @@ def get_events(job_id: str | None = None) -> list[dict[str, Any]]:
 
 async def publish_event(job_id: str, event_type: str, data: dict[str, Any]) -> None:
     """Publish an event to the ``nucleus:job:{job_id}`` channel."""
-    payload = {"job_id": job_id, "type": event_type, **data}
+    payload = {"job_id": job_id, "event_type": event_type, **data}
     _event_log.append(payload)
+    for cb in _subscribers.get(job_id, {}).values():
+        try:
+            cb(payload)
+        except Exception:  # noqa: BLE001 — subscribers shouldn't break publishers
+            pass
     # In production: await redis.publish(f"nucleus:job:{job_id}", json.dumps(payload))
+
+
+def subscribe(
+    job_id: str, callback: Callable[[dict[str, Any]], None]
+) -> Callable[[], None]:
+    """Subscribe to events for a job. Returns an unsubscribe function."""
+    sub_id = uuid4().hex
+    _subscribers.setdefault(job_id, {})[sub_id] = callback
+
+    def _unsubscribe() -> None:
+        subs = _subscribers.get(job_id, {})
+        subs.pop(sub_id, None)
+
+    return _unsubscribe
