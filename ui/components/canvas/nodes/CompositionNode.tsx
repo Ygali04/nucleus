@@ -1,18 +1,19 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Layers } from 'lucide-react';
 import { STATUS_MAP } from '@/lib/constants';
-import type { CanvasNodeData } from '@/lib/types';
+import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
 
-export function CompositionNode({ data, selected }: NodeProps<CanvasNodeData>) {
-  const d = (data.data ?? {}) as {
+export function CompositionNode({ data, selected }: NodeProps) {
+  const node = data as CanvasNodeData;
+  const d = (node.data ?? {}) as {
     templateId?: string;
     sceneCount?: number;
     totalDurationS?: number;
     renderProgress?: number;
     outputUrl?: string | null;
   };
-  const tone = STATUS_MAP[data.status];
+  const tone = STATUS_MAP[node.status];
   const progressPct = Math.round((d.renderProgress ?? 0) * 100);
 
   return (
@@ -28,14 +29,14 @@ export function CompositionNode({ data, selected }: NodeProps<CanvasNodeData>) {
         <span>{d.templateId ?? 'Composition'}</span>
       </div>
 
-      <div className="mb-1 text-[13px] font-semibold text-[var(--color-ink)]">{data.label}</div>
+      <div className="mb-1 text-[13px] font-semibold text-[var(--color-ink)]">{node.label}</div>
 
       <div className="mb-2 flex items-center justify-between text-[11px] text-[var(--color-muted)]">
         <span>{d.sceneCount ?? 0} scenes</span>
         <span className="font-mono">{(d.totalDurationS ?? 0).toFixed(1)}s</span>
       </div>
 
-      {data.status === 'active' ? (
+      {node.status === 'active' ? (
         <div className="mb-2 h-1 w-full overflow-hidden rounded bg-[var(--color-muted-bg,#f5f6f8)]">
           <div
             className="h-full rounded bg-[var(--color-primary)] transition-all"
@@ -45,8 +46,8 @@ export function CompositionNode({ data, selected }: NodeProps<CanvasNodeData>) {
       ) : null}
 
       <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted)]">
-        <StatusDot color={tone.color} pulse={data.status === 'active'} />
-        <span>{data.statusText}</span>
+        <StatusDot color={tone.color} pulse={node.status === 'active'} />
+        <span>{node.statusText}</span>
       </div>
     </div>
   );

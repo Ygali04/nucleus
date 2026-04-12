@@ -1,10 +1,11 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Brain } from 'lucide-react';
-import type { CanvasNodeData } from '@/lib/types';
+import type { CanvasNodeData } from '@/lib/graph-layout';
 import { scoreColor } from '@/lib/score-color';
 
-export function ScoringNode({ data, selected }: NodeProps<CanvasNodeData>) {
-  const d = (data.data ?? {}) as {
+export function ScoringNode({ data, selected }: NodeProps) {
+  const node = data as CanvasNodeData;
+  const d = (node.data ?? {}) as {
     neuralScore?: number | null;
     threshold?: number;
     topMetrics?: Array<{ name: string; score: number }>;

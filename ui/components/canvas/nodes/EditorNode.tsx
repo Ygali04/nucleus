@@ -1,7 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { PencilRuler } from 'lucide-react';
 import { STATUS_MAP } from '@/lib/constants';
-import type { CanvasNodeData } from '@/lib/types';
+import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
 
 const EDIT_TYPE_LABELS: Record<string, string> = {
@@ -15,8 +15,9 @@ const EDIT_TYPE_LABELS: Record<string, string> = {
   icp_reanchor: 'ICP Re-anchor',
 };
 
-export function EditorNode({ data, selected }: NodeProps<CanvasNodeData>) {
-  const d = (data.data ?? {}) as {
+export function EditorNode({ data, selected }: NodeProps) {
+  const node = data as CanvasNodeData;
+  const d = (node.data ?? {}) as {
     editType?: string;
     targetStartS?: number;
     targetEndS?: number;
@@ -24,7 +25,7 @@ export function EditorNode({ data, selected }: NodeProps<CanvasNodeData>) {
     afterScore?: number | null;
     costUsd?: number;
   };
-  const tone = STATUS_MAP[data.status];
+  const tone = STATUS_MAP[node.status];
   const label = d.editType ? EDIT_TYPE_LABELS[d.editType] ?? d.editType : 'Edit';
   const delta =
     d.beforeScore !== undefined && d.afterScore !== null && d.afterScore !== undefined
@@ -71,8 +72,8 @@ export function EditorNode({ data, selected }: NodeProps<CanvasNodeData>) {
       ) : null}
 
       <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted)]">
-        <StatusDot color={tone.color} pulse={data.status === 'active'} />
-        <span>{data.statusText}</span>
+        <StatusDot color={tone.color} pulse={node.status === 'active'} />
+        <span>{node.statusText}</span>
       </div>
     </div>
   );

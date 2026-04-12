@@ -1,11 +1,12 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { AudioLines, Music } from 'lucide-react';
 import { STATUS_MAP } from '@/lib/constants';
-import type { CanvasNodeData } from '@/lib/types';
+import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
 
-export function AudioGenNode({ data, selected }: NodeProps<CanvasNodeData>) {
-  const d = (data.data ?? {}) as {
+export function AudioGenNode({ data, selected }: NodeProps) {
+  const node = data as CanvasNodeData;
+  const d = (node.data ?? {}) as {
     kind?: 'voice' | 'music';
     voiceName?: string;
     language?: string;
@@ -13,7 +14,7 @@ export function AudioGenNode({ data, selected }: NodeProps<CanvasNodeData>) {
     costUsd?: number;
     durationS?: number;
   };
-  const tone = STATUS_MAP[data.status];
+  const tone = STATUS_MAP[node.status];
   const Icon = d.kind === 'music' ? Music : AudioLines;
 
   // 14 fake waveform bars, heights varying
@@ -49,7 +50,7 @@ export function AudioGenNode({ data, selected }: NodeProps<CanvasNodeData>) {
         ))}
       </div>
 
-      <div className="mb-1 text-[13px] font-semibold text-[var(--color-ink)]">{data.label}</div>
+      <div className="mb-1 text-[13px] font-semibold text-[var(--color-ink)]">{node.label}</div>
 
       {(d.voiceName || d.language || d.mood) ? (
         <div className="mb-2 truncate text-[11px] text-[var(--color-muted)]">
@@ -60,8 +61,8 @@ export function AudioGenNode({ data, selected }: NodeProps<CanvasNodeData>) {
 
       <div className="flex items-center justify-between text-xs text-[var(--color-muted)]">
         <div className="flex items-center gap-1.5">
-          <StatusDot color={tone.color} pulse={data.status === 'active'} />
-          <span>{data.statusText}</span>
+          <StatusDot color={tone.color} pulse={node.status === 'active'} />
+          <span>{node.statusText}</span>
         </div>
         {d.durationS ? <span className="font-mono text-[10px]">{d.durationS.toFixed(1)}s</span> : null}
       </div>
