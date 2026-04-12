@@ -25,11 +25,16 @@ import { useCanvasStore } from '@/store/canvas-store';
 import { useDashboardStore } from '@/store/dashboard-store';
 import { Minimap } from '@/components/canvas/Minimap';
 import { AgentNode } from '@/components/canvas/nodes/AgentNode';
+import { AudioGenNode } from '@/components/canvas/nodes/AudioGenNode';
+import { CompositionNode } from '@/components/canvas/nodes/CompositionNode';
 import { DatabaseNode } from '@/components/canvas/nodes/DatabaseNode';
+import { EditorNode } from '@/components/canvas/nodes/EditorNode';
 import { GatewayNode } from '@/components/canvas/nodes/GatewayNode';
 import { GroupNode } from '@/components/canvas/nodes/GroupNode';
 import { SchedulerNode } from '@/components/canvas/nodes/SchedulerNode';
+import { ScoringNode } from '@/components/canvas/nodes/ScoringNode';
 import { ServiceNode } from '@/components/canvas/nodes/ServiceNode';
+import { VideoGenNode } from '@/components/canvas/nodes/VideoGenNode';
 import { DataFlowEdge } from '@/components/canvas/edges/DataFlowEdge';
 import { DependencyEdge } from '@/components/canvas/edges/DependencyEdge';
 
@@ -40,6 +45,11 @@ const nodeTypes: NodeTypes = {
   gateway: GatewayNode,
   service: ServiceNode,
   group: GroupNode,
+  video_gen: VideoGenNode,
+  audio_gen: AudioGenNode,
+  composition: CompositionNode,
+  scoring: ScoringNode,
+  editor: EditorNode,
 };
 
 const edgeTypes: EdgeTypes = {

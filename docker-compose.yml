@@ -1,0 +1,103 @@
+# Nucleus — full development stack
+# Usage: docker-compose up -d postgres redis minio
+#        docker-compose up api worker
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nucleus
+      POSTGRES_PASSWORD: nucleus
+      POSTGRES_DB: nucleus
+    ports:
+      - "5432:5432"
+    volumes:
+      - nucleus-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nucleus -d nucleus"]
+      interval: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: nucleus
+      MINIO_ROOT_PASSWORD: nucleus123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - nucleus-minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nucleus:nucleus@postgres:5432/nucleus
+      REDIS_URL: redis://redis:6379/0
+      S3_BUCKET: nucleus-media
+      S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: nucleus
+      AWS_SECRET_ACCESS_KEY: nucleus123
+      AWS_REGION: us-east-1
+      NUCLEUS_MOCK_PROVIDERS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nucleus:nucleus@postgres:5432/nucleus
+      REDIS_URL: redis://redis:6379/0
+      S3_BUCKET: nucleus-media
+      S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: nucleus
+      AWS_SECRET_ACCESS_KEY: nucleus123
+      NUCLEUS_MOCK_PROVIDERS: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    ports:
+      - "3100:3100"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - api
+
+  remotion:
+    build:
+      context: ./remotion
+      dockerfile: Dockerfile
+    ports:
+      - "3101:3101"
+
+volumes:
+  nucleus-pgdata:
+  nucleus-minio:

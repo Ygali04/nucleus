@@ -16,6 +16,24 @@ export interface CanvasNodeData extends Record<string, unknown> {
   data?: Record<string, unknown>;
 }
 
+const KIND_TO_NODE_TYPE: Record<GraphNodeMeta['kind'], string> = {
+  agent: 'agent',
+  database: 'database',
+  scheduler: 'scheduler',
+  gateway: 'gateway',
+  service: 'service',
+  group: 'group',
+  video_gen: 'video_gen',
+  audio_gen: 'audio_gen',
+  composition: 'composition',
+  scoring: 'scoring',
+  editor: 'editor',
+};
+
+function nodeTypeForKind(kind: GraphNodeMeta['kind']): string {
+  return KIND_TO_NODE_TYPE[kind] ?? 'agent';
+}
+
 function toneFromAgentStatus(
   status: AgentDefinition['state']['status'],
 ): GraphNodeMeta['status'] {
@@ -99,18 +117,7 @@ export function buildCanvasNodes(
 ): Node<CanvasNodeData>[] {
   const baseNodes = dummyGraphNodes.map((node) => ({
     id: node.id,
-    type:
-      node.kind === 'group'
-        ? 'group'
-        : node.kind === 'database'
-          ? 'database'
-          : node.kind === 'scheduler'
-            ? 'scheduler'
-            : node.kind === 'gateway'
-              ? 'gateway'
-              : node.kind === 'service'
-                ? 'service'
-                : 'agent',
+    type: nodeTypeForKind(node.kind),
     position: positionOverrides[node.id] || { x: node.x, y: node.y },
     data: {
       label: node.label,
@@ -173,18 +180,7 @@ export function buildCanvasNodes(
     .filter((node) => !knownIds.has(node.id))
     .map((node) => ({
       id: node.id,
-      type:
-        node.kind === 'group'
-          ? 'group'
-          : node.kind === 'database'
-            ? 'database'
-            : node.kind === 'scheduler'
-              ? 'scheduler'
-              : node.kind === 'gateway'
-                ? 'gateway'
-                : node.kind === 'service'
-                  ? 'service'
-                  : 'agent',
+      type: nodeTypeForKind(node.kind),
       position: positionOverrides[node.id] || { x: node.x, y: node.y },
       data: {
         label: node.label,

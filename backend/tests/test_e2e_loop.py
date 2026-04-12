@@ -175,7 +175,7 @@ class TestCandidateLoop:
 
         # Verify events were published in sensible order
         job_events = events.get_events(job.id)
-        event_types = [e["type"] for e in job_events]
+        event_types = [e["event_type"] for e in job_events]
 
         assert "candidate.generating" in event_types
         assert "candidate.scored" in event_types
@@ -258,7 +258,7 @@ class TestJobOrchestration:
 
         # Both candidates should have delivered events
         job_events = events.get_events(job.id)
-        delivered = [e for e in job_events if e["type"] == "candidate.delivered"]
+        delivered = [e for e in job_events if e["event_type"] == "candidate.delivered"]
         assert len(delivered) == 2
 
 
@@ -281,7 +281,7 @@ class TestEventOrdering:
         await run_candidate_loop(candidate.id, mock=True)
 
         job_events = events.get_events(job.id)
-        types = [e["type"] for e in job_events]
+        types = [e["event_type"] for e in job_events]
 
         # The sequence should start with generating, have at least one
         # scored + evaluated cycle, and end with delivered.

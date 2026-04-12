@@ -156,7 +156,59 @@ export type GraphNodeKind =
   | 'scheduler'
   | 'gateway'
   | 'service'
-  | 'group';
+  | 'group'
+  | 'video_gen'
+  | 'audio_gen'
+  | 'composition'
+  | 'scoring'
+  | 'editor';
+
+/** Pipeline-specific metadata attached to the 5 Nucleus node kinds. */
+export interface VideoGenNodeData {
+  provider: string;
+  prompt: string;
+  thumbnailUrl: string | null;
+  videoUrl: string | null;
+  costUsd: number;
+  durationS: number;
+  iterationCount?: number;
+}
+
+export interface AudioGenNodeData {
+  kind: 'voice' | 'music';
+  voiceName?: string;
+  language?: string;
+  mood?: string;
+  text?: string;
+  audioUrl: string | null;
+  costUsd: number;
+  durationS: number;
+}
+
+export interface CompositionNodeData {
+  templateId: string;
+  sceneCount: number;
+  totalDurationS: number;
+  renderProgress: number;
+  outputUrl: string | null;
+}
+
+export interface ScoringNodeData {
+  neuralScore: number | null;
+  threshold: number;
+  topMetrics: Array<{ name: string; score: number }>;
+  iterationCount: number;
+  scoreDelta: number | null;
+}
+
+export interface EditorNodeData {
+  editType: string;
+  targetStartS: number;
+  targetEndS: number;
+  beforeScore: number;
+  afterScore: number | null;
+  costUsd: number;
+}
 
 export interface GraphNodeMeta {
   id: string;

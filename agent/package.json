@@ -1,0 +1,19 @@
+{
+  "name": "nucleus-agent",
+  "version": "0.1.0",
+  "description": "Ruflo-based agent orchestration for the Nucleus recursive video pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.3"
+  }
+}
