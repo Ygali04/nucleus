@@ -19,6 +19,8 @@ node_modules/
 package-lock.json
 yarn.lock
 .pnpm-store/
+.next/
+tsconfig.tsbuildinfo
 
 # Editors / OS
 .DS_Store
