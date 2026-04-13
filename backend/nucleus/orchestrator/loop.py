@@ -182,8 +182,9 @@ async def run_candidate_loop(candidate_id: str, *, mock: bool = True) -> None:
             if mock
             else ""
         )
-        iteration = await create_iteration(candidate_id, i + 1, video_url)
-        iteration.edit_type = edit_type
+        iteration = await create_iteration(
+            candidate_id, i + 1, video_url, edit_type=edit_type
+        )
         cost_so_far += 0.05  # mock edit cost
 
         # Mark generating for the re-render implied by the edit

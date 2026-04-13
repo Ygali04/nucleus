@@ -77,6 +77,8 @@ services:
       AWS_SECRET_ACCESS_KEY: nucleus123
       NUCLEUS_MOCK_PROVIDERS: "true"
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
