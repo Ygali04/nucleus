@@ -27,7 +27,7 @@ export function ActiveAgentsGauge({
           cy="80"
           r="60"
           fill="none"
-          stroke="var(--color-brass)"
+          stroke="var(--color-primary)"
           strokeWidth="12"
           strokeLinecap="round"
           strokeDasharray={circumference}

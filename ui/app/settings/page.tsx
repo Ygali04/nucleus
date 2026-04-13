@@ -17,9 +17,9 @@ export default function SettingsPage() {
       'WebSocket URL',
       process.env.NEXT_PUBLIC_DASHBOARD_WS_URL || 'ws://localhost:3200',
     ],
-    ['Mode', isLiveMode ? 'Live runtime' : 'Demo fallback'],
-    ['Protected files', 'SYSTEM.md, runtime.config.yaml'],
-    ['Daily cost limit', '$500'],
+    ['Mode', isLiveMode ? 'Live pipeline' : 'Demo fallback'],
+    ['Protected files', 'SYSTEM.md, pipeline.config.yaml'],
+    ['Daily render budget', '$500'],
   ];
 
   return (
@@ -29,13 +29,13 @@ export default function SettingsPage() {
           Settings
         </div>
         <h1 className="mt-2 font-serif text-4xl text-[var(--color-ink)]">
-          Runtime Configuration Snapshot
+          Nucleus Pipeline Configuration
         </h1>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <div className="gs-card rounded-2xl p-5">
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
             Environment
           </div>
           <div className="space-y-3">
@@ -54,7 +54,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="gs-card rounded-2xl p-5">
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
             Agent Models
           </div>
           <div className="space-y-3">

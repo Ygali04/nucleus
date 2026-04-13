@@ -32,7 +32,7 @@ export function LLMCallChart({
         <Line
           type="monotone"
           dataKey="minimax"
-          stroke="var(--color-brass)"
+          stroke="var(--color-primary)"
           strokeWidth={2}
           dot={false}
         />

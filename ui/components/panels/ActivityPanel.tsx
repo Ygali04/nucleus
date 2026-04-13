@@ -42,7 +42,7 @@ export function ActivityPanel() {
         onClick={toggleActivityPanel}
       >
         <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink)]">
-          <Zap className="h-4 w-4 text-[var(--color-brass)]" />
+          <Zap className="h-4 w-4 text-[var(--color-primary)]" />
           Activity
         </div>
         <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export function ActivityPanel() {
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex w-full items-start gap-3 border-b border-black/6 px-4 py-3 text-left transition ${
                   selected
-                    ? 'bg-[var(--color-brass)]/10'
+                    ? 'bg-[var(--color-primary)]/10'
                     : 'hover:bg-black/[0.02]'
                 }`}
                 onClick={() => {
@@ -95,7 +95,7 @@ export function ActivityPanel() {
                         ? 'text-[var(--color-success)]'
                         : kind === 'warning'
                           ? 'text-[var(--color-warning)]'
-                          : 'text-[var(--color-brass)]'
+                          : 'text-[var(--color-primary)]'
                   }`}
                 />
                 <div className="min-w-0 flex-1">

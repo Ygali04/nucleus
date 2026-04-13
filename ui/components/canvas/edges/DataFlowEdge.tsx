@@ -30,7 +30,7 @@ export function DataFlowEdge({
           strokeDasharray: '6 5',
         }}
       />
-      <circle r="3" fill="var(--color-brass)">
+      <circle r="3" fill="var(--color-primary)">
         <animateMotion dur="2.4s" repeatCount="indefinite" path={edgePath} />
       </circle>
     </>

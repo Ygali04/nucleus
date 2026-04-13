@@ -48,7 +48,7 @@ export function Header() {
               href={item.href}
               className={`border-b px-1 py-3 text-sm transition ${
                 active
-                  ? 'border-[var(--color-brass)] text-[var(--color-brass)]'
+                  ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                   : 'border-transparent text-white/65 hover:text-white'
               }`}
             >
@@ -70,7 +70,7 @@ export function Header() {
                 href={item.href}
                 className={`rounded-full px-3 py-1 text-xs transition ${
                   active
-                    ? 'bg-[var(--color-brass)] text-[var(--color-dark)]'
+                    ? 'bg-[var(--color-primary)] text-[var(--color-dark)]'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >

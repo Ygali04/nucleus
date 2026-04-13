@@ -36,7 +36,7 @@ export const dummyActivity: ActivityEntry[] = Array.from(
       agent,
       type,
       taskId: `task-${String((index % 30) + 1).padStart(3, '0')}`,
-      taskTitle: `Workstream update ${index + 1}`,
+      taskTitle: `Pipeline update ${index + 1}`,
       data: {
         summary:
           type === 'error'

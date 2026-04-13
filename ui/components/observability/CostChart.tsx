@@ -19,12 +19,12 @@ export function CostChart({ data }: { data: CostHistoryPoint[] }) {
           <linearGradient id="costGradient" x1="0" x2="0" y1="0" y2="1">
             <stop
               offset="5%"
-              stopColor="var(--color-brass)"
+              stopColor="var(--color-primary)"
               stopOpacity={0.45}
             />
             <stop
               offset="95%"
-              stopColor="var(--color-brass)"
+              stopColor="var(--color-primary)"
               stopOpacity={0.02}
             />
           </linearGradient>
@@ -40,7 +40,7 @@ export function CostChart({ data }: { data: CostHistoryPoint[] }) {
         <Area
           type="monotone"
           dataKey="cumulative"
-          stroke="var(--color-brass)"
+          stroke="var(--color-primary)"
           fill="url(#costGradient)"
           strokeWidth={2}
         />

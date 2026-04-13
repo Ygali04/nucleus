@@ -25,14 +25,14 @@ export function TokenChart({
         <Area
           type="monotone"
           dataKey="input"
-          stroke="var(--color-brass)"
+          stroke="var(--color-primary)"
           fill="rgba(184,160,122,0.2)"
           strokeWidth={2}
         />
         <Area
           type="monotone"
           dataKey="output"
-          stroke="var(--color-brass-light)"
+          stroke="var(--color-primary-light)"
           fill="rgba(212,196,168,0.2)"
           strokeWidth={2}
         />

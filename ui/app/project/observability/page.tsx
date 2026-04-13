@@ -83,12 +83,12 @@ export default function ProjectObservabilityPage() {
           Project Observability
         </div>
         <h1 className="mt-2 font-serif text-4xl text-[var(--color-ink)]">
-          Aggregate Task and Deliverable Signals
+          Aggregate Pipeline and Variant Signals
         </h1>
         <p className="mt-3 max-w-3xl text-sm text-[var(--color-muted)]">
-          Client-safe observability focused on task flow, communication load,
-          and delivery progress. Provider diagnostics, token usage, and cost
-          telemetry are intentionally excluded here.
+          Creator-safe observability focused on pipeline flow, communication
+          load, and variant delivery progress. Provider diagnostics, token
+          usage, and render-spend telemetry are intentionally excluded here.
         </p>
       </div>
 

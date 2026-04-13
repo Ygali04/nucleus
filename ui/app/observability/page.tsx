@@ -95,29 +95,29 @@ export default function ObservabilityPage() {
     <div className="space-y-6 px-5 py-6">
       <div>
         <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-          Observability
+          Canvas
         </div>
         <h1 className="mt-2 font-serif text-4xl text-[var(--color-ink)]">
-          Performance and Runtime Telemetry
+          Pipeline Performance and Render Telemetry
         </h1>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <ChartCard
-          title="Cost Per Hour"
-          subtitle="Cumulative spend flowing through the pipeline runtime"
+          title="Render Spend Per Hour"
+          subtitle="Cumulative spend across generation, scoring, and edit passes"
         >
           <CostChart data={costHistory} />
         </ChartCard>
         <ChartCard
-          title="Tasks Completed"
-          subtitle="Completed work items by hourly bucket"
+          title="Variants Delivered"
+          subtitle="Passing variants by hourly bucket"
         >
           <TaskChart data={taskChartData} />
         </ChartCard>
         <ChartCard
-          title="LLM Calls"
-          subtitle="Provider mix across the last 48 hours"
+          title="Model Calls"
+          subtitle="Provider mix (video, audio, scoring) across the last 48 hours"
         >
           <LLMCallChart data={llmChartData} />
         </ChartCard>
@@ -126,13 +126,13 @@ export default function ObservabilityPage() {
         </ChartCard>
         <ChartCard
           title="Active Agents"
-          subtitle="Current number of agents in a running state"
+          subtitle="Current number of pipeline agents in a running state"
         >
           <ActiveAgentsGauge active={activeAgents} total={agents.length} />
         </ChartCard>
         <ChartCard
           title="Error Rate"
-          subtitle="Runtime errors and failed tasks"
+          subtitle="Render failures and scoring errors"
         >
           <ErrorRateChart data={errorRateData} />
         </ChartCard>

@@ -25,7 +25,7 @@ export function BrassPill({
           }
         : {
             backgroundColor: 'rgba(79, 70, 229, 0.14)',
-            color: BRAND.brass,
+            color: BRAND.primary,
           };
 
   return (

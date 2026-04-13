@@ -5,7 +5,7 @@ import { useMessages } from '@/hooks/useMessages';
 import { useTasks } from '@/hooks/useTasks';
 import { useDashboardStore } from '@/store/dashboard-store';
 
-type DeliverablesSurface = 'provider' | 'client' | 'executive';
+type DeliverablesSurface = 'provider' | 'creator' | 'executive';
 
 interface DeliverablesWorkspaceProps {
   surface: DeliverablesSurface;
@@ -31,49 +31,49 @@ function buildInsightSummary(title: string, result?: string) {
   }
 
   const lower = title.toLowerCase();
-  if (lower.includes('pricing')) {
-    return 'Pricing variance concentrated in two regions; recommended next move is a targeted discount-governance review and weekly leakage monitoring.';
+  if (lower.includes('hook')) {
+    return 'Hook variants lifted neural score above threshold; the pipeline recommends promoting the top two hooks into production and retiring under-performing opens from the variant library.';
   }
-  if (lower.includes('inventory') || lower.includes('working capital')) {
-    return 'Working-capital friction is concentrated in slower-moving business units; the swarm recommended reorder threshold changes and a short-cycle inventory review.';
+  if (lower.includes('pacing') || lower.includes('tighten')) {
+    return 'Pacing tightener recovered sustained attention on the middle beat; the pipeline surfaced two shorter cuts that beat the prior best score by more than 10 points.';
   }
-  if (lower.includes('vendor') || lower.includes('supplier')) {
-    return 'Supplier concentration risk remains elevated; the swarm surfaced renegotiation leverage and an alternate-vendor shortlist for procurement follow-up.';
+  if (lower.includes('voice') || lower.includes('vo')) {
+    return 'Voice swap shifted emotional resonance without degrading clarity; the new VO is recommended as the default read for this archetype and ICP.';
   }
-  if (lower.includes('ebitda') || lower.includes('sg&a') || lower.includes('cash')) {
-    return 'The analysis identified a near-term earnings and cash unlock path, with the strongest actions tied to spend controls, reporting hygiene, and faster operational escalation.';
+  if (lower.includes('score') || lower.includes('neural') || lower.includes('tribe')) {
+    return 'TRIBE v2 scoring identified a passing variant; the top drivers are hook attention and emotional resonance, with a recommended follow-up test on CTA placement.';
   }
 
-  return 'The consulting swarm completed this analysis, captured the supporting evidence, and produced an operator-ready recommendation set for the next review cycle.';
+  return 'The generation pipeline produced this variation, scored it with TRIBE v2, and shipped a creator-ready variant bundle for the next performance review.';
 }
 
 function getCopy(surface: DeliverablesSurface) {
   if (surface === 'provider') {
     return {
-      eyebrow: 'Deliverables',
-      title: 'Client-Facing Insights and Outcomes',
+      eyebrow: 'Scoring',
+      title: 'Video Performance & Variants',
       description:
-        'Review the outputs your consulting swarm is producing across client workstreams, including final recommendations, delivery timing, and share-ready report links.',
-      summaryThreeLabel: 'Client Messages',
+        'Review the variants your generation pipeline is producing across each brief, including winning hooks, neural-score trends, and creator-ready share links.',
+      summaryThreeLabel: 'Creator Messages',
     };
   }
 
   if (surface === 'executive') {
     return {
       eyebrow: 'Executive Workspace',
-      title: 'Deliverable History and Sharing',
+      title: 'Variant History and Sharing',
       description:
-        'A narrow executive surface for reviewing completed deliverables, understanding time-to-deliver, and sharing report links with other stakeholders.',
-      summaryThreeLabel: 'Recent Client Messages',
+        'A narrow executive surface for reviewing shipped variants, understanding time-to-score, and sharing performance links with other stakeholders.',
+      summaryThreeLabel: 'Recent Creator Messages',
     };
   }
 
   return {
-    eyebrow: 'Deliverables',
-    title: 'Insights and Outcomes',
+    eyebrow: 'Scoring',
+    title: 'Variants and Neural Scores',
     description:
-      'Review the reports, conclusions, and recommendations the consulting swarm has produced for this project, along with delivery timing and share links.',
-    summaryThreeLabel: 'Project Messages',
+      'Review the variants, neural scores, and recommendations the generation pipeline has produced for this brief, along with delivery timing and share links.',
+    summaryThreeLabel: 'Brief Messages',
   };
 }
 
@@ -104,7 +104,7 @@ export function DeliverablesWorkspace({
           createdAt: task.created_at,
           cycleTime: formatDuration(task.created_at, task.completed_at),
           summary: buildInsightSummary(task.title, task.result),
-          shareUrl: `https://share.nucleus-pipeline.ai/deliverables/${task.id}`,
+          shareUrl: `https://share.nucleus-pipeline.ai/variants/${task.id}`,
         })),
     [tasks],
   );
@@ -123,7 +123,7 @@ export function DeliverablesWorkspace({
 
   const latestDeliveredAt = deliverables[0]
     ? new Date(deliverables[0].deliveredAt).toLocaleString()
-    : 'No deliverables yet';
+    : 'No variants yet';
 
   return (
     <div className="space-y-6 px-5 py-6">
@@ -141,7 +141,7 @@ export function DeliverablesWorkspace({
 
       <div className="grid gap-4 md:grid-cols-3">
         <SummaryCard
-          label="Reports Delivered"
+          label="Variants Delivered"
           value={String(deliverables.length)}
         />
         <SummaryCard label="Average Cycle Time" value={averageCycleTime} />
@@ -153,8 +153,8 @@ export function DeliverablesWorkspace({
 
       <section className="grid gap-5 xl:grid-cols-[1.6fr,1fr]">
         <div className="gs-card rounded-2xl p-5">
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
-            Deliverable History
+          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
+            Variant History
           </div>
           <div className="space-y-3">
             {deliverables.map((deliverable) => (
@@ -171,7 +171,7 @@ export function DeliverablesWorkspace({
                       Delivered {new Date(deliverable.deliveredAt).toLocaleString()}
                     </div>
                   </div>
-                  <div className="rounded-full border border-[var(--color-brass)]/30 bg-[var(--color-brass)]/10 px-3 py-1 text-xs text-[var(--color-ink)]">
+                  <div className="rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-3 py-1 text-xs text-[var(--color-ink)]">
                     Cycle time {deliverable.cycleTime}
                   </div>
                 </div>
@@ -182,7 +182,7 @@ export function DeliverablesWorkspace({
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button className="rounded-md border border-black/10 px-3 py-1.5 text-sm text-[var(--color-ink)] transition hover:bg-black/[0.03]">
-                    Open report
+                    Open variant
                   </button>
                   <button className="rounded-md border border-black/10 px-3 py-1.5 text-sm text-[var(--color-ink)] transition hover:bg-black/[0.03]">
                     Copy share link
@@ -197,7 +197,7 @@ export function DeliverablesWorkspace({
         </div>
 
         <div className="gs-card rounded-2xl p-5">
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
             Sharing
           </div>
           <div className="space-y-3 text-sm text-[var(--color-muted)]">
@@ -205,15 +205,15 @@ export function DeliverablesWorkspace({
               title="Distribution"
               value={
                 surface === 'provider'
-                  ? 'client exec team, engagement lead, provider ops'
-                  : 'finance@client.com, ceo@client.com'
+                  ? 'content team, creative lead, ops'
+                  : 'growth@brand.com, ceo@brand.com'
               }
             />
             <ShareCard
               title="Workspace link"
               value={
                 surface === 'provider'
-                  ? 'share.nucleus-pipeline.ai/workspaces/provider-deliverables'
+                  ? 'share.nucleus-pipeline.ai/workspaces/variant-library'
                   : 'share.nucleus-pipeline.ai/workspaces/executive'
               }
             />

@@ -31,7 +31,7 @@ export function BaseNodeCard({
     <div
       className={`gs-card relative min-w-[208px] max-w-[208px] rounded-xl border px-4 py-3 transition ${className}`}
       style={{
-        borderColor: selected ? 'var(--color-brass)' : 'rgba(26,26,26,0.1)',
+        borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
         background:
           selected || status === 'new' ? 'rgba(184,160,122,0.05)' : 'white',
       }}
@@ -39,12 +39,12 @@ export function BaseNodeCard({
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-0 !bg-[var(--color-brass)]"
+        className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]"
       />
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-0 !bg-[var(--color-brass)]"
+        className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]"
       />
 
       {newBadge ? (

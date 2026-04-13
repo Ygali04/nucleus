@@ -20,7 +20,7 @@ export function SchedulerDetail({
       </div>
 
       <div className="rounded-lg border border-black/8 bg-black/[0.015] px-4 py-4 text-sm text-[var(--color-muted)]">
-        <div className="mb-3 text-[11px] uppercase tracking-[0.18em] text-[var(--color-brass)]">
+        <div className="mb-3 text-[11px] uppercase tracking-[0.18em] text-[var(--color-primary)]">
           Schedule
         </div>
         <div>Current cadence: {metaTag || 'unspecified'}</div>
