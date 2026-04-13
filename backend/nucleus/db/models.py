@@ -124,6 +124,11 @@ class IterationRow(Base):
         nullable=False,
     )
 
+    # Full NeuroPeer ``AnalysisResult`` (serialized as JSON) captured whenever
+    # a scoring event completes. ``ScoreRow`` is the flat rollup used for fast
+    # aggregation; this column preserves the complete report for UI retrieval.
+    analysis_result_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
     candidate: Mapped[CandidateRow] = relationship(back_populates="iterations")
     score: Mapped["ScoreRow | None"] = relationship(
         back_populates="iteration",
@@ -168,6 +173,33 @@ class ScoreRow(Base):
 # ---------------------------------------------------------------------------
 # Events (durable log; complements the in-process pubsub in nucleus.events)
 # ---------------------------------------------------------------------------
+
+class CampaignRow(Base):
+    __tablename__ = "campaigns"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    archetype: Mapped[str] = mapped_column(String(64), nullable=False)
+    brand_name: Mapped[str] = mapped_column(String(256), nullable=False)
+    graph_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    brief_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="idle")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    last_executed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Job enqueued by the most recent /execute call, so /reports can walk
+    # candidates -> iterations without a campaign_id FK on existing tables.
+    last_job_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+
 
 class EventRow(Base):
     __tablename__ = "events"

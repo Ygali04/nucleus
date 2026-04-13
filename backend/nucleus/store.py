@@ -10,8 +10,11 @@ from __future__ import annotations
 from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
+from datetime import datetime, timezone
+
 from nucleus.db import (
     AsyncSessionLocal,
+    CampaignRow,
     CandidateRow,
     EventRow,
     IterationRow,
@@ -20,6 +23,7 @@ from nucleus.db import (
 )
 from nucleus.models import (
     BriefRequest,
+    Campaign,
     CandidateSpec,
     EditType,
     Iteration,
@@ -143,6 +147,7 @@ def _row_to_iteration(row: IterationRow) -> Iteration:
         score=_row_to_score(row.score),
         edit_type=EditType(row.edit_type) if row.edit_type else None,
         cost=row.cost,
+        analysis_result=dict(row.analysis_result_json) if row.analysis_result_json else None,
     )
 
 
@@ -266,6 +271,18 @@ async def update_iteration_edit_type(
         await session.commit()
 
 
+async def update_iteration_analysis_result(
+    iteration_id: str, analysis_result: dict
+) -> None:
+    """Persist the full NeuroPeer ``AnalysisResult`` dict for an iteration."""
+    async with AsyncSessionLocal() as session:
+        iteration = await session.get(IterationRow, iteration_id)
+        if iteration is None:
+            return
+        iteration.analysis_result_json = analysis_result
+        await session.commit()
+
+
 async def update_iteration_video_url(iteration_id: str, video_url: str) -> None:
     """Persist a ``video_url`` change made after iteration creation.
 
@@ -293,6 +310,104 @@ async def list_iterations(candidate_id: str) -> list[Iteration]:
 
 
 # ---------------------------------------------------------------------------
+# Campaigns
+# ---------------------------------------------------------------------------
+
+def _row_to_campaign(row: CampaignRow) -> Campaign:
+    return Campaign(
+        id=row.id,
+        archetype=row.archetype,
+        brand_name=row.brand_name,
+        graph=dict(row.graph_json or {}),
+        brief=dict(row.brief_json) if row.brief_json is not None else None,
+        status=row.status,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        last_executed_at=row.last_executed_at,
+        last_job_id=row.last_job_id,
+    )
+
+
+async def save_campaign(campaign: Campaign) -> Campaign:
+    async with AsyncSessionLocal() as session:
+        await session.merge(
+            CampaignRow(
+                id=campaign.id,
+                archetype=campaign.archetype,
+                brand_name=campaign.brand_name,
+                graph_json=dict(campaign.graph or {}),
+                brief_json=dict(campaign.brief) if campaign.brief is not None else None,
+                status=campaign.status,
+                last_executed_at=campaign.last_executed_at,
+                last_job_id=campaign.last_job_id,
+            )
+        )
+        await session.commit()
+    # Re-fetch in a fresh session so ``created_at`` / ``updated_at`` reflect
+    # server-side defaults — avoids lazy-load in the committed row.
+    return await get_campaign(campaign.id)
+
+
+async def get_campaign(campaign_id: str) -> Campaign:
+    async with AsyncSessionLocal() as session:
+        row = await session.get(CampaignRow, campaign_id)
+        if row is None:
+            raise KeyError(campaign_id)
+        return _row_to_campaign(row)
+
+
+async def list_campaigns() -> list[Campaign]:
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(CampaignRow).order_by(CampaignRow.created_at.desc(), CampaignRow.id)
+        )
+        return [_row_to_campaign(r) for r in result.scalars().all()]
+
+
+async def delete_campaign(campaign_id: str) -> bool:
+    async with AsyncSessionLocal() as session:
+        row = await session.get(CampaignRow, campaign_id)
+        if row is None:
+            return False
+        await session.delete(row)
+        await session.commit()
+        return True
+
+
+async def update_campaign(campaign_id: str, patch: dict) -> Campaign:
+    """Apply a partial update. Unknown keys are ignored."""
+    allowed = {"archetype", "brand_name", "graph", "brief", "status", "last_job_id"}
+    async with AsyncSessionLocal() as session:
+        row = await session.get(CampaignRow, campaign_id)
+        if row is None:
+            raise KeyError(campaign_id)
+        for key, value in patch.items():
+            if key not in allowed or value is None:
+                continue
+            if key == "graph":
+                row.graph_json = dict(value)
+            elif key == "brief":
+                row.brief_json = dict(value)
+            else:
+                setattr(row, key, value)
+        if "last_executed_at" in patch and patch["last_executed_at"] is not None:
+            row.last_executed_at = patch["last_executed_at"]
+        await session.commit()
+    return await get_campaign(campaign_id)
+
+
+async def mark_campaign_executed(campaign_id: str, job_id: str) -> None:
+    async with AsyncSessionLocal() as session:
+        row = await session.get(CampaignRow, campaign_id)
+        if row is None:
+            return
+        row.last_job_id = job_id
+        row.last_executed_at = datetime.now(timezone.utc)
+        row.status = "executing"
+        await session.commit()
+
+
+# ---------------------------------------------------------------------------
 # Admin / test helpers
 # ---------------------------------------------------------------------------
 
@@ -309,6 +424,7 @@ async def _reset_async() -> None:
         await session.execute(delete(IterationRow))
         await session.execute(delete(CandidateRow))
         await session.execute(delete(JobRow))
+        await session.execute(delete(CampaignRow))
         await session.commit()
 
 

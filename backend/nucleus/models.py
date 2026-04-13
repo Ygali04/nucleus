@@ -114,6 +114,7 @@ class Iteration(BaseModel):
     score: ScoreBreakdown | None = None
     edit_type: EditType | None = None
     cost: float = 0.0
+    analysis_result: dict | None = None
 
 
 class CandidateStatus(BaseModel):
@@ -132,3 +133,47 @@ class IterationDetail(BaseModel):
     video_url: str
     score: ScoreBreakdown | None = None
     edit_type: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Campaigns — a UI-facing archetype graph that can be executed as a Brief.
+# ---------------------------------------------------------------------------
+
+class Campaign(BaseModel):
+    id: str = Field(default_factory=_new_id)
+    archetype: str
+    brand_name: str
+    graph: dict = Field(default_factory=dict)
+    brief: dict | None = None
+    status: str = "idle"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_executed_at: datetime | None = None
+    last_job_id: str | None = None
+
+
+class CampaignCreate(BaseModel):
+    archetype: str
+    brand_name: str
+    graph: dict = Field(default_factory=dict)
+    brief: dict | None = None
+
+
+class CampaignUpdate(BaseModel):
+    archetype: str | None = None
+    brand_name: str | None = None
+    graph: dict | None = None
+    brief: dict | None = None
+    status: str | None = None
+
+
+class CampaignExecuteResponse(BaseModel):
+    job_id: str
+    websocket_url: str
+
+
+class CampaignReport(BaseModel):
+    iteration_id: str
+    candidate_id: str
+    iteration_index: int
+    analysis_result: dict
