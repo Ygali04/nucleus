@@ -161,7 +161,10 @@ export type GraphNodeKind =
   | 'audio_gen'
   | 'composition'
   | 'scoring'
-  | 'editor';
+  | 'editor'
+  | 'brand_kb'
+  | 'icp'
+  | 'delivery';
 
 /** Pipeline-specific metadata attached to the 5 Nucleus node kinds. */
 export interface VideoGenNodeData {
@@ -208,6 +211,25 @@ export interface EditorNodeData {
   beforeScore: number;
   afterScore: number | null;
   costUsd: number;
+}
+
+export interface BrandKBNodeData {
+  brandName: string;
+  voiceTone: string[];
+  docCount: number;
+}
+
+export interface ICPNodeData {
+  personaName: string;
+  platform: 'tiktok' | 'instagram' | 'youtube' | string;
+  painPoint: string;
+}
+
+export interface DeliveryNodeData {
+  variantCount: number;
+  exportFormats: string[];
+  cdnUrl: string | null;
+  badgeText?: string;
 }
 
 export interface GraphNodeMeta {
