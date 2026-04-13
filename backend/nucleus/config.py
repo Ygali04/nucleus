@@ -1,0 +1,74 @@
+"""Centralized configuration for the Nucleus backend.
+
+All environment variable reads should funnel through the module-level
+``settings`` instance so tool/provider modules don't scatter
+``os.environ.get`` calls. Pydantic validates types and supplies defaults.
+
+Usage::
+
+    from nucleus.config import settings
+
+    bucket = settings.s3_bucket
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Runtime configuration, populated from the process environment."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    # --- Storage (S3 / MinIO) -------------------------------------------------
+    s3_endpoint_url: str | None = None
+    aws_access_key_id: str | None = None
+    aws_secret_access_key: str | None = None
+    s3_bucket: str = "nucleus-media"
+    # Accept either ``S3_REGION`` (preferred) or the standard ``AWS_REGION``.
+    s3_region: str = "us-east-1"
+    aws_region: str | None = None
+
+    # --- Core services --------------------------------------------------------
+    database_url: str | None = None
+    redis_url: str = "redis://localhost:6379/0"
+
+    # --- Providers ------------------------------------------------------------
+    nucleus_mock_providers: bool = False
+    nucleus_video_provider: str = "kling"
+    fal_key: str | None = None
+    elevenlabs_api_key: str | None = None
+    google_cloud_project: str | None = None
+
+    @property
+    def effective_region(self) -> str:
+        """Use ``AWS_REGION`` when set (docker-compose convention), else ``S3_REGION``."""
+        return self.aws_region or self.s3_region
+
+
+@lru_cache(maxsize=1)
+def _build_settings() -> Settings:
+    return Settings()
+
+
+# Module-level singleton. Re-import ``settings`` anywhere you need config.
+settings: Settings = _build_settings()
+
+
+def reload_settings() -> Settings:
+    """Rebuild settings from the current environment (test helper)."""
+    _build_settings.cache_clear()
+    global settings
+    settings = _build_settings()
+    return settings
+
+
+__all__ = ["Settings", "settings", "reload_settings"]
