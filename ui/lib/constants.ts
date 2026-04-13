@@ -42,7 +42,7 @@ export const DASHBOARD_WS_URL =
 export const NAV_ITEMS = [
   { label: 'Pipeline', href: '/' },
   { label: 'Canvas', href: '/observability' },
-  { label: 'Scoring', href: '/deliverables' },
+  { label: 'Reports', href: '/reports' },
   { label: 'Logs', href: '/logs' },
   { label: 'Settings', href: '/settings' },
 ] as const;

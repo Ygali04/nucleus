@@ -23,16 +23,16 @@ export const SURFACE_NAV: Record<DashboardSurface, NavItem[]> = {
   provider: [
     { label: 'Pipeline', href: '/' },
     { label: 'Canvas', href: '/observability' },
-    { label: 'Scoring', href: '/deliverables' },
+    { label: 'Reports', href: '/reports' },
     { label: 'Logs', href: '/logs' },
     { label: 'Settings', href: '/settings' },
   ],
   project: [
     { label: 'Pipeline', href: '/project' },
     { label: 'Canvas', href: '/project/observability' },
-    { label: 'Scoring', href: '/project/deliverables' },
+    { label: 'Reports', href: '/reports' },
   ],
-  executive: [{ label: 'Scoring', href: '/executive' }],
+  executive: [{ label: 'Reports', href: '/reports' }],
 };
 
 export const SURFACE_ACTIONS: Record<DashboardSurface, SurfaceAction[]> = {
@@ -73,3 +73,5 @@ export function getDashboardSurface(pathname: string | null): DashboardSurface {
   }
   return 'provider';
 }
+
+export const SURFACE_SCORE_THRESHOLD = 72;

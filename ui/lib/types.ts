@@ -302,3 +302,86 @@ export interface WebSocketEventMessage {
 export type DashboardSocketMessage =
   | WebSocketHistoryMessage
   | WebSocketEventMessage;
+
+export interface NeuralScoreBreakdown {
+  total: number;
+  hook_score: number;
+  sustained_attention: number;
+  emotional_resonance: number;
+  memory_encoding: number;
+  aesthetic_quality: number;
+  cognitive_accessibility: number;
+}
+
+export interface MetricScore {
+  name: string;
+  score: number;
+  raw_value: number;
+  description: string;
+  brain_region: string;
+  gtm_proxy: string;
+}
+
+export type KeyMomentType =
+  | 'best_hook'
+  | 'peak_engagement'
+  | 'emotional_peak'
+  | 'dropoff_risk'
+  | 'recovery';
+
+export interface KeyMoment {
+  timestamp: number;
+  type: KeyMomentType;
+  label: string;
+  score: number;
+}
+
+export interface ModalityContribution {
+  timestamp: number;
+  visual: number;
+  audio: number;
+  text: number;
+}
+
+export interface NeuroPeerReport {
+  job_id: string;
+  neural_score: NeuralScoreBreakdown;
+  attention_curve: number[];
+  emotional_arousal_curve: number[];
+  cognitive_load_curve: number[];
+  metrics: MetricScore[];
+  key_moments: KeyMoment[];
+  modality_breakdown: ModalityContribution[];
+  ai_summary: string;
+  ai_action_items: string[];
+  ai_report_title: string;
+  parent_job_id?: string;
+  content_group_id?: string;
+}
+
+export interface CampaignVariant {
+  id: string;
+  label: string;
+  createdAt: string;
+  report: NeuroPeerReport | null;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  variants: CampaignVariant[];
+}
+
+export type NeuralDimensionKey = keyof Omit<NeuralScoreBreakdown, 'total'>;
+
+export const NEURAL_DIMENSIONS: ReadonlyArray<{
+  key: NeuralDimensionKey;
+  label: string;
+}> = [
+  { key: 'hook_score', label: 'Hook' },
+  { key: 'sustained_attention', label: 'Sustained Attention' },
+  { key: 'emotional_resonance', label: 'Emotional Resonance' },
+  { key: 'memory_encoding', label: 'Memory Encoding' },
+  { key: 'aesthetic_quality', label: 'Aesthetic Quality' },
+  { key: 'cognitive_accessibility', label: 'Cognitive Accessibility' },
+];

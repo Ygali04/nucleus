@@ -8,7 +8,7 @@ import { getDashboardSurface, SURFACE_META, SURFACE_NAV } from '@/lib/surface';
 const SURFACE_SWITCHES = [
   { label: 'Pipeline', href: '/' },
   { label: 'Project', href: '/project' },
-  { label: 'Executive', href: '/executive' },
+  { label: 'Reports', href: '/reports' },
 ];
 
 export function Header() {
