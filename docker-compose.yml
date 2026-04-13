@@ -58,6 +58,7 @@ services:
       AWS_SECRET_ACCESS_KEY: nucleus123
       AWS_REGION: us-east-1
       NUCLEUS_MOCK_PROVIDERS: "true"
+      REMOTION_API_URL: http://remotion:8089
     depends_on:
       postgres:
         condition: service_healthy
@@ -76,6 +77,7 @@ services:
       AWS_ACCESS_KEY_ID: nucleus
       AWS_SECRET_ACCESS_KEY: nucleus123
       NUCLEUS_MOCK_PROVIDERS: "true"
+      REMOTION_API_URL: http://remotion:8089
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,9 +99,15 @@ services:
     build:
       context: ./remotion
       dockerfile: Dockerfile
+    environment:
+      RENDER_PORT: "8089"
     ports:
-      - "3101:3101"
+      - "3101:8089"
+    volumes:
+      - nucleus-remotion-out:/app/out
+      - /tmp/nucleus:/tmp/nucleus
 
 volumes:
   nucleus-pgdata:
   nucleus-minio:
+  nucleus-remotion-out:
