@@ -1,8 +1,14 @@
 /**
  * Tool registry — maps tool names to their backend HTTP endpoints.
- * The Ruflo orchestrator invokes tools by calling POST on these URLs.
+ *
+ * The Ruflo orchestrator invokes tools via the `defineTool` handlers
+ * in `./handlers/*`. At server start the bridge binds a handler set
+ * against the caller-supplied `tools_base_url` (the Nucleus backend)
+ * and registers them with the swarm.
  */
 
+import { buildToolHandlers } from "./handlers/index.js";
+import type { NucleusToolSet } from "./handlers/index.js";
 import type { ToolName, ToolTypeMap } from "./types.js";
 
 const BACKEND_URL = process.env.NUCLEUS_BACKEND_URL ?? "http://localhost:8000";
@@ -54,7 +60,7 @@ export const TOOL_REGISTRY: Record<ToolName, RegistryEntry> = {
   },
 };
 
-/** Type-safe tool invocation helper. */
+/** Type-safe tool invocation helper (legacy, used by static tests). */
 export async function callTool<T extends ToolName>(
   name: T,
   input: ToolTypeMap[T]["input"],
@@ -73,3 +79,12 @@ export async function callTool<T extends ToolName>(
 }
 
 export const TOOL_NAMES: readonly ToolName[] = Object.keys(TOOL_REGISTRY) as ToolName[];
+
+/**
+ * Bind the full `defineTool` handler set against a per-request `tools_base_url`.
+ * server.ts calls this at the start of every `/api/v1/swarm/run` request so
+ * swarms running against different backends don't share state.
+ */
+export function bindToolHandlers(toolsBaseUrl: string): NucleusToolSet {
+  return buildToolHandlers(toolsBaseUrl);
+}

@@ -21,6 +21,7 @@ yarn.lock
 .pnpm-store/
 .next/
 tsconfig.tsbuildinfo
+dist/
 
 # Editors / OS
 .DS_Store

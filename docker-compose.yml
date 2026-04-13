@@ -59,11 +59,27 @@ services:
       AWS_REGION: us-east-1
       NUCLEUS_MOCK_PROVIDERS: "true"
       REMOTION_API_URL: http://remotion:8089
+      RUFLO_BRIDGE_URL: http://agent:9000
+      NUCLEUS_API_URL: http://api:8000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    ports:
+      - "9100:9000"
+    environment:
+      NODE_ENV: production
+      PORT: "9000"
+      NUCLEUS_API_URL: http://api:8000
+      NUCLEUS_BACKEND_URL: http://api:8000
+    depends_on:
+      - api
 
   worker:
     build:
