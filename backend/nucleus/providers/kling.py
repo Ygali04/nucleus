@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import os
-
 import fal_client
 
+from nucleus.config import fal_key
 from nucleus.providers.types import GenerationResult, ProviderJobStatus
 
 # fal.ai model endpoint for Kling v3 Pro text-to-video
@@ -28,7 +27,7 @@ class KlingVideoProvider:
     def __init__(self) -> None:
         # fal_client reads FAL_KEY from the environment automatically.
         # Validate early so callers get a clear error.
-        if not os.environ.get("FAL_KEY"):
+        if not fal_key():
             raise EnvironmentError(
                 "FAL_KEY environment variable is required for the Kling provider"
             )

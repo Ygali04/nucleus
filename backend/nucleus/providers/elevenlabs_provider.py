@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import io
-import os
 from uuid import uuid4
 
+from nucleus.config import elevenlabs_api_key, is_mock
 from nucleus.providers._types import AudioProvider, AudioResult
 
 __all__ = ["AudioProvider", "AudioResult", "ElevenLabsProvider"]
@@ -18,10 +18,8 @@ class ElevenLabsProvider:
     cost_per_1k_chars: float = 0.06  # Flash / Turbo tier
 
     def __init__(self, api_key: str | None = None) -> None:
-        self.api_key: str = api_key or os.environ.get("ELEVENLABS_API_KEY", "")
-        self.mock: bool = (
-            os.environ.get("NUCLEUS_MOCK_PROVIDERS", "false").lower() == "true"
-        )
+        self.api_key: str = api_key if api_key is not None else elevenlabs_api_key()
+        self.mock: bool = is_mock()
         self._client: object | None = None
 
     def _get_client(self):  # noqa: ANN202

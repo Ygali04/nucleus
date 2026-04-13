@@ -6,9 +6,11 @@ All environment variable reads should funnel through the module-level
 
 Usage::
 
-    from nucleus.config import settings
+    from nucleus.config import settings, is_mock
 
     bucket = settings.s3_bucket
+    if is_mock():
+        ...
 """
 
 from __future__ import annotations
@@ -47,6 +49,8 @@ class Settings(BaseSettings):
     fal_key: str | None = None
     elevenlabs_api_key: str | None = None
     google_cloud_project: str | None = None
+    wavespeed_api_key: str | None = None
+    atlas_cloud_api_key: str | None = None
 
     @property
     def effective_region(self) -> str:
@@ -71,4 +75,41 @@ def reload_settings() -> Settings:
     return settings
 
 
-__all__ = ["Settings", "settings", "reload_settings"]
+# --- Backward-compat thin wrappers (callers from WU-J) ----------------------
+# Keep these as module-level functions so existing imports work unchanged.
+def is_mock() -> bool:
+    """Return True when every provider should return canned fixtures."""
+    return bool(settings.nucleus_mock_providers)
+
+
+def fal_key() -> str:
+    return settings.fal_key or ""
+
+
+def elevenlabs_api_key() -> str:
+    return settings.elevenlabs_api_key or ""
+
+
+def google_cloud_project() -> str:
+    return settings.google_cloud_project or ""
+
+
+def wavespeed_api_key() -> str:
+    return settings.wavespeed_api_key or ""
+
+
+def atlas_cloud_api_key() -> str:
+    return settings.atlas_cloud_api_key or ""
+
+
+__all__ = [
+    "Settings",
+    "settings",
+    "reload_settings",
+    "is_mock",
+    "fal_key",
+    "elevenlabs_api_key",
+    "google_cloud_project",
+    "wavespeed_api_key",
+    "atlas_cloud_api_key",
+]

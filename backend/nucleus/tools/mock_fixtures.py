@@ -6,16 +6,23 @@ progressively higher scores, simulating the closed loop improving the variant.
 
 from __future__ import annotations
 
-import os
 import random
 from uuid import uuid4
+
+from nucleus.config import is_mock as _config_is_mock
 
 # candidate_id -> number of times scored
 _SCORE_HISTORY: dict[str, int] = {}
 
 
 def is_mock() -> bool:
-    return os.environ.get("NUCLEUS_MOCK_PROVIDERS", "true").lower() == "true"
+    """Return True when the global mock-providers toggle is set.
+
+    Thin wrapper over :func:`nucleus.config.is_mock` so tools that still
+    import from ``mock_fixtures`` keep the same default semantics as the
+    rest of the codebase.
+    """
+    return _config_is_mock()
 
 
 def mock_video_url(tag: str = "video") -> str:

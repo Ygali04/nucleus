@@ -16,9 +16,13 @@ from nucleus.providers.lyria import LyriaProvider, MusicProvider
 @pytest.fixture(autouse=True)
 def mock_mode():
     """Ensure all provider calls use mock mode during tests."""
+    previous = os.environ.get("NUCLEUS_MOCK_PROVIDERS")
     os.environ["NUCLEUS_MOCK_PROVIDERS"] = "true"
     yield
-    os.environ.pop("NUCLEUS_MOCK_PROVIDERS", None)
+    if previous is None:
+        os.environ.pop("NUCLEUS_MOCK_PROVIDERS", None)
+    else:
+        os.environ["NUCLEUS_MOCK_PROVIDERS"] = previous
 
 
 # ── Protocol conformance ─────────────────────────────────────────────────────

@@ -26,11 +26,14 @@ import { useDashboardStore } from '@/store/dashboard-store';
 import { Minimap } from '@/components/canvas/Minimap';
 import { AgentNode } from '@/components/canvas/nodes/AgentNode';
 import { AudioGenNode } from '@/components/canvas/nodes/AudioGenNode';
+import { BrandKBNode } from '@/components/canvas/nodes/BrandKBNode';
 import { CompositionNode } from '@/components/canvas/nodes/CompositionNode';
 import { DatabaseNode } from '@/components/canvas/nodes/DatabaseNode';
+import { DeliveryNode } from '@/components/canvas/nodes/DeliveryNode';
 import { EditorNode } from '@/components/canvas/nodes/EditorNode';
 import { GatewayNode } from '@/components/canvas/nodes/GatewayNode';
 import { GroupNode } from '@/components/canvas/nodes/GroupNode';
+import { ICPNode } from '@/components/canvas/nodes/ICPNode';
 import { SchedulerNode } from '@/components/canvas/nodes/SchedulerNode';
 import { ScoringNode } from '@/components/canvas/nodes/ScoringNode';
 import { ServiceNode } from '@/components/canvas/nodes/ServiceNode';
@@ -50,6 +53,9 @@ const nodeTypes: NodeTypes = {
   composition: CompositionNode,
   scoring: ScoringNode,
   editor: EditorNode,
+  brand_kb: BrandKBNode,
+  icp: ICPNode,
+  delivery: DeliveryNode,
 };
 
 const edgeTypes: EdgeTypes = {

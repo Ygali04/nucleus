@@ -28,6 +28,9 @@ const KIND_TO_NODE_TYPE: Record<GraphNodeMeta['kind'], string> = {
   composition: 'composition',
   scoring: 'scoring',
   editor: 'editor',
+  brand_kb: 'brand_kb',
+  icp: 'icp',
+  delivery: 'delivery',
 };
 
 function nodeTypeForKind(kind: GraphNodeMeta['kind']): string {
