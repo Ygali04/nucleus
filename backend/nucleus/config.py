@@ -6,7 +6,7 @@ All environment variable reads should funnel through the module-level
 
 Usage::
 
-    from nucleus.config import settings, is_mock
+    from nucleus.config import settings, is_mock, neuropeer_base_url
 
     bucket = settings.s3_bucket
     if is_mock():
@@ -15,6 +15,7 @@ Usage::
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -52,6 +53,11 @@ class Settings(BaseSettings):
     wavespeed_api_key: str | None = None
     atlas_cloud_api_key: str | None = None
 
+    # --- NeuroPeer ------------------------------------------------------------
+    neuropeer_base_url: str = "http://localhost:8001"
+    neuropeer_timeout_seconds: float = 300.0
+    neuropeer_api_key: str | None = None
+
     @property
     def effective_region(self) -> str:
         """Use ``AWS_REGION`` when set (docker-compose convention), else ``S3_REGION``."""
@@ -75,8 +81,7 @@ def reload_settings() -> Settings:
     return settings
 
 
-# --- Backward-compat thin wrappers (callers from WU-J) ----------------------
-# Keep these as module-level functions so existing imports work unchanged.
+# --- Backward-compat thin wrappers (callers from WU-J and WU-F) -------------
 def is_mock() -> bool:
     """Return True when every provider should return canned fixtures."""
     return bool(settings.nucleus_mock_providers)
@@ -102,6 +107,29 @@ def atlas_cloud_api_key() -> str:
     return settings.atlas_cloud_api_key or ""
 
 
+def neuropeer_base_url() -> str:
+    """Base URL for NeuroPeer (defaults to local dev on port 8001, not 8000)."""
+    # Read live so tests that monkeypatch env see the change.
+    return os.environ.get("NEUROPEER_BASE_URL", settings.neuropeer_base_url).rstrip("/")
+
+
+def neuropeer_timeout_seconds() -> float:
+    raw = os.environ.get("NEUROPEER_TIMEOUT_SECONDS")
+    if raw:
+        try:
+            return float(raw)
+        except ValueError:
+            pass
+    return float(settings.neuropeer_timeout_seconds)
+
+
+def neuropeer_api_key() -> str | None:
+    value = os.environ.get("NEUROPEER_API_KEY")
+    if value:
+        return value
+    return settings.neuropeer_api_key
+
+
 __all__ = [
     "Settings",
     "settings",
@@ -112,4 +140,7 @@ __all__ = [
     "google_cloud_project",
     "wavespeed_api_key",
     "atlas_cloud_api_key",
+    "neuropeer_base_url",
+    "neuropeer_timeout_seconds",
+    "neuropeer_api_key",
 ]

@@ -1,12 +1,12 @@
 """Async client for the NeuroPeer neural-analysis API.
 
-Wraps `/Users/yahvingali/video-brainscore/` so Nucleus's closed loop can submit
-videos, stream progress, and consume the full AnalysisResult as a data packet.
+Wraps the service at $NEUROPEER_BASE_URL (http://localhost:8001 in dev) so
+Nucleus's closed loop can submit videos, stream progress over WebSocket, and
+consume the full AnalysisResult as a data packet.
 """
 
 from __future__ import annotations
 
-import json
 from collections.abc import AsyncGenerator, Callable
 from typing import Any
 from uuid import UUID
@@ -14,6 +14,7 @@ from uuid import UUID
 import httpx
 import websockets
 
+from nucleus import config
 from nucleus.clients.neuropeer_types import (
     AnalysisResult,
     BrainMapFrame,
@@ -23,17 +24,32 @@ from nucleus.clients.neuropeer_types import (
 )
 
 
+class NeuroPeerError(RuntimeError):
+    """Raised when a NeuroPeer call fails (HTTP error, WS error, bad payload, timeout)."""
+
+
 class NeuroPeerClient:
     """Async client for NeuroPeer. Use as a context manager or close explicitly."""
 
     def __init__(
         self,
-        base_url: str = "http://localhost:8000",
-        timeout: float = 300.0,
+        base_url: str | None = None,
+        timeout: float | None = None,
+        transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.timeout = timeout
-        self._client = httpx.AsyncClient(base_url=self.base_url, timeout=timeout)
+        self.base_url = (base_url or config.neuropeer_base_url()).rstrip("/")
+        self.timeout = timeout if timeout is not None else config.neuropeer_timeout_seconds()
+        headers: dict[str, str] = {}
+        # Auth is currently disabled server-side; leave a hook for the future.
+        api_key = config.neuropeer_api_key()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        self._client = httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=self.timeout,
+            headers=headers,
+            transport=transport,
+        )
 
     async def __aenter__(self) -> NeuroPeerClient:
         return self
@@ -44,18 +60,24 @@ class NeuroPeerClient:
     async def close(self) -> None:
         await self._client.aclose()
 
+    # --- HTTP ---
+
     async def submit(
         self,
         url: str,
         content_type: str = "custom",
         *,
+        content_types: list[str] | None = None,
         label: str | None = None,
         parent_job_id: UUID | str | None = None,
         user_email: str | None = None,
         project_id: UUID | str | None = None,
+        campaign_id: UUID | str | None = None,
     ) -> JobCreated:
         """POST /api/v1/analyze — submit a video for neural analysis."""
         payload: dict[str, Any] = {"url": url, "content_type": content_type}
+        if content_types:
+            payload["content_types"] = content_types
         if label:
             payload["label"] = label
         if parent_job_id:
@@ -64,68 +86,148 @@ class NeuroPeerClient:
             payload["user_email"] = user_email
         if project_id:
             payload["project_id"] = str(project_id)
+        if campaign_id:
+            payload["campaign_id"] = str(campaign_id)
 
-        resp = await self._client.post("/api/v1/analyze", json=payload)
-        resp.raise_for_status()
-        return JobCreated.model_validate(resp.json())
-
-    async def stream_progress(
-        self, job_id: UUID | str
-    ) -> AsyncGenerator[ProgressEvent, None]:
-        """Yield ProgressEvents from the WebSocket /ws/job/{job_id} endpoint."""
-        ws_url = self.base_url.replace("http://", "ws://").replace(
-            "https://", "wss://"
-        )
-        uri = f"{ws_url}/ws/job/{job_id}"
-        async with websockets.connect(uri) as ws:
-            async for message in ws:
-                raw = message if isinstance(message, str) else message.decode("utf-8")
-                event = ProgressEvent.model_validate_json(raw)
-                yield event
-                if event.status in ("complete", "error"):
-                    break
+        try:
+            resp = await self._client.post("/api/v1/analyze", json=payload)
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise NeuroPeerError(f"submit failed: {exc}") from exc
+        try:
+            return JobCreated.model_validate(resp.json())
+        except Exception as exc:  # noqa: BLE001 — reshape any parse error
+            raise NeuroPeerError(f"submit returned unparseable body: {exc}") from exc
 
     async def get_results(self, job_id: UUID | str) -> AnalysisResult:
         """GET /api/v1/results/{job_id} — full neural report data packet."""
-        resp = await self._client.get(f"/api/v1/results/{job_id}")
-        resp.raise_for_status()
-        return AnalysisResult.model_validate(resp.json())
+        try:
+            resp = await self._client.get(f"/api/v1/results/{job_id}")
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise NeuroPeerError(f"get_results({job_id}) failed: {exc}") from exc
+        try:
+            return AnalysisResult.model_validate(resp.json())
+        except Exception as exc:  # noqa: BLE001
+            raise NeuroPeerError(f"get_results({job_id}) unparseable: {exc}") from exc
 
     async def get_status(self, job_id: UUID | str) -> dict[str, Any]:
         """GET /api/v1/results/{job_id}/status — quick status check."""
-        resp = await self._client.get(f"/api/v1/results/{job_id}/status")
-        resp.raise_for_status()
+        try:
+            resp = await self._client.get(f"/api/v1/results/{job_id}/status")
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise NeuroPeerError(f"get_status({job_id}) failed: {exc}") from exc
+        return resp.json()
+
+    async def get_timeseries(self, job_id: UUID | str) -> dict[str, Any]:
+        """GET /api/v1/results/{job_id}/timeseries — attention/emotional/cognitive curves."""
+        try:
+            resp = await self._client.get(f"/api/v1/results/{job_id}/timeseries")
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise NeuroPeerError(f"get_timeseries({job_id}) failed: {exc}") from exc
         return resp.json()
 
     async def get_brain_map(
         self, job_id: UUID | str, timestamp: float = 0.0
     ) -> BrainMapFrame:
-        resp = await self._client.get(
-            f"/api/v1/results/{job_id}/brain-map",
-            params={"timestamp": timestamp},
-        )
-        resp.raise_for_status()
-        return BrainMapFrame.model_validate(resp.json())
+        try:
+            resp = await self._client.get(
+                f"/api/v1/results/{job_id}/brain-map",
+                params={"timestamp": timestamp},
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise NeuroPeerError(f"get_brain_map({job_id}) failed: {exc}") from exc
+        try:
+            return BrainMapFrame.model_validate(resp.json())
+        except Exception as exc:  # noqa: BLE001
+            raise NeuroPeerError(f"get_brain_map({job_id}) unparseable: {exc}") from exc
 
     async def compare(self, job_ids: list[UUID | str]) -> ComparisonResult:
-        resp = await self._client.post(
-            "/api/v1/compare",
-            json={"job_ids": [str(j) for j in job_ids]},
-        )
-        resp.raise_for_status()
-        return ComparisonResult.model_validate(resp.json())
+        try:
+            resp = await self._client.post(
+                "/api/v1/compare",
+                json={"job_ids": [str(j) for j in job_ids]},
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise NeuroPeerError(f"compare failed: {exc}") from exc
+        try:
+            return ComparisonResult.model_validate(resp.json())
+        except Exception as exc:  # noqa: BLE001
+            raise NeuroPeerError(f"compare unparseable: {exc}") from exc
+
+    # --- WebSocket ---
+
+    def _ws_uri(self, job_id: UUID | str, websocket_url: str | None = None) -> str:
+        """Compose the websocket URI. Prefers the server-supplied path.
+
+        NeuroPeer's `/api/v1/analyze` response carries `websocket_url` as a
+        relative path like `/ws/job/{id}`. We join it to our base URL (swapped
+        to ws/wss). If the caller passes an absolute ws:// URL we use it as-is.
+        """
+        if websocket_url and websocket_url.startswith(("ws://", "wss://")):
+            return websocket_url
+        ws_base = self.base_url.replace("https://", "wss://").replace("http://", "ws://")
+        path = websocket_url or f"/ws/job/{job_id}"
+        if not path.startswith("/"):
+            path = "/" + path
+        return f"{ws_base}{path}"
+
+    async def stream_progress(
+        self,
+        job_id: UUID | str,
+        websocket_url: str | None = None,
+    ) -> AsyncGenerator[ProgressEvent, None]:
+        """Yield ProgressEvents until the job reaches `complete` or `error`."""
+        uri = self._ws_uri(job_id, websocket_url)
+        try:
+            async with websockets.connect(uri) as ws:
+                async for message in ws:
+                    raw = (
+                        message if isinstance(message, str) else message.decode("utf-8")
+                    )
+                    try:
+                        event = ProgressEvent.model_validate_json(raw)
+                    except Exception as exc:  # noqa: BLE001
+                        raise NeuroPeerError(
+                            f"progress event unparseable: {exc}"
+                        ) from exc
+                    yield event
+                    if event.status in ("complete", "error"):
+                        break
+        except websockets.WebSocketException as exc:
+            raise NeuroPeerError(f"websocket stream failed: {exc}") from exc
 
     async def submit_and_wait(
         self,
         url: str,
         content_type: str = "custom",
+        *,
         on_progress: Callable[[ProgressEvent], None] | None = None,
+        **submit_kwargs: Any,
     ) -> AnalysisResult:
-        """Convenience: submit → stream progress → return final results."""
-        job = await self.submit(url, content_type=content_type)
-        async for event in self.stream_progress(job.job_id):
-            if on_progress:
+        """Submit → stream progress → return final results.
+
+        Raises NeuroPeerError if the job terminates in `error` state or the
+        websocket closes without a terminal event.
+        """
+        job = await self.submit(url, content_type=content_type, **submit_kwargs)
+        terminal: ProgressEvent | None = None
+        async for event in self.stream_progress(job.job_id, job.websocket_url):
+            if on_progress is not None:
                 on_progress(event)
-            if event.status == "error":
-                raise RuntimeError(f"NeuroPeer job failed: {event.message}")
+            if event.status in ("complete", "error"):
+                terminal = event
+                break
+        if terminal is None:
+            raise NeuroPeerError(
+                f"job {job.job_id} websocket closed without terminal event"
+            )
+        if terminal.status == "error":
+            raise NeuroPeerError(
+                f"NeuroPeer job {job.job_id} failed: {terminal.message}"
+            )
         return await self.get_results(job.job_id)

@@ -21,10 +21,10 @@ class MetricScore(BaseModel):
 
 
 class KeyMoment(BaseModel):
+    # Known types: best_hook | peak_engagement | emotional_peak | dropoff_risk | recovery
+    # Kept as plain str to match the real server schema (which doesn't enforce enum).
     timestamp: float
-    type: Literal[
-        "best_hook", "peak_engagement", "emotional_peak", "dropoff_risk", "recovery"
-    ]
+    type: str
     label: str
     score: float
 
