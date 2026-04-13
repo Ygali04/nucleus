@@ -302,3 +302,42 @@ export interface WebSocketEventMessage {
 export type DashboardSocketMessage =
   | WebSocketHistoryMessage
   | WebSocketEventMessage;
+
+export type CampaignArchetype =
+  | 'demo'
+  | 'marketing'
+  | 'knowledge'
+  | 'education';
+
+export type CampaignStatus = 'idle' | 'running' | 'scored' | 'failed';
+
+export interface CampaignBrief {
+  goal?: string;
+  audience?: string;
+  tone?: string;
+  notes?: string;
+}
+
+export interface CampaignVariant {
+  id: string;
+  label: string;
+  videoUrl: string | null;
+  neuralScore: number | null;
+  createdAt: string;
+}
+
+export interface Campaign {
+  id: string;
+  archetype: CampaignArchetype;
+  brandName: string;
+  createdAt: string;
+  lastExecutedAt?: string;
+  status: CampaignStatus;
+  variants: CampaignVariant[];
+  bestScore?: number;
+  brief?: CampaignBrief;
+  graph: {
+    nodes: GraphNodeMeta[];
+    edges: GraphEdgeMeta[];
+  };
+}
