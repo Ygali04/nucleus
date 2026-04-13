@@ -21,6 +21,7 @@ import {
   buildCanvasNodes,
   type CanvasNodeData,
 } from '@/lib/graph-layout';
+import { useCampaignsStore } from '@/store/campaigns-store';
 import { useCanvasStore } from '@/store/canvas-store';
 import { useDashboardStore } from '@/store/dashboard-store';
 import { Minimap } from '@/components/canvas/Minimap';
@@ -106,6 +107,10 @@ function FlowCanvas() {
   const agents = useDashboardStore((state) => state.agents);
   const customNodes = useDashboardStore((state) => state.customNodes);
   const selectNode = useCanvasStore((state) => state.selectNode);
+  const openNodeModal = useCampaignsStore((state) => state.openNodeModal);
+  const nodeDataOverrides = useCampaignsStore(
+    (state) => state.nodeData[state.currentCampaignId],
+  );
   const nodePositions = useCanvasStore((state) => state.nodePositions);
   const viewport = useCanvasStore((state) => state.viewport);
   const setViewport = useCanvasStore((state) => state.setViewport);
@@ -134,19 +139,35 @@ function FlowCanvas() {
 
     return buildCanvasNodes(nodePositions, agents, customNodes).map((node) => {
       const runtime = runtimeMap.get(node.id);
-      if (!runtime) return node;
+      const override = nodeDataOverrides?.[node.id];
 
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          status: runtime.status,
-          statusText: runtime.statusText,
-          metaTag: node.data.metaTag || runtime.metaTag,
-        },
+      if (!runtime && !override) return node;
+
+      const mergedData: CanvasNodeData = {
+        ...node.data,
+        ...(runtime
+          ? {
+              status: runtime.status as CanvasNodeData['status'],
+              statusText: runtime.statusText,
+              metaTag: node.data.metaTag || runtime.metaTag,
+            }
+          : {}),
+        ...(override
+          ? {
+              data: { ...(node.data.data ?? {}), ...override },
+              ...(typeof override.status === 'string'
+                ? { status: override.status as CanvasNodeData['status'] }
+                : {}),
+              ...(typeof override.statusText === 'string'
+                ? { statusText: override.statusText }
+                : {}),
+            }
+          : {}),
       };
+
+      return { ...node, data: mergedData };
     }) as Node<CanvasNodeData>[];
-  }, [agents, customNodes, nodePositions]);
+  }, [agents, customNodes, nodeDataOverrides, nodePositions]);
 
   const [nodes, setNodes] = useNodesState(nodesWithRuntime);
   const [edges] = useEdgesState(buildCanvasEdges());
@@ -174,7 +195,13 @@ function FlowCanvas() {
         maxZoom={1.8}
         nodesDraggable={false}
         onNodesChange={onNodesChange}
-        onNodeClick={(_, node) => selectNode(node.id)}
+        onNodeClick={(_, node) => {
+          selectNode(node.id);
+          const kind = (node.data as CanvasNodeData | undefined)?.kind;
+          if (kind === 'brand_kb' || kind === 'icp') {
+            openNodeModal(node.id);
+          }
+        }}
         defaultViewport={viewport}
         onMoveEnd={(_, nextViewport) => {
           setViewport({
