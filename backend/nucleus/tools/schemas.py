@@ -70,6 +70,13 @@ class ClipFFmpegRequest(BaseModel):
     start_s: float = 0.0
     end_s: float = 0.0
     operations: list[str] = Field(default_factory=list)
+    # Per-operation parameters, keyed by operation name. Examples:
+    #   {"concat": {"additional_urls": ["s3://..."]}}
+    #   {"overlay_text": {"text": "Hi", "start_s": 0, "end_s": 2,
+    #                      "position": "bottom"}}
+    #   {"adjust_speed": {"speed_factor": 1.5}}
+    #   {"add_music_bed": {"music_url": "s3://...", "volume_db": -10.0}}
+    params: dict = Field(default_factory=dict)
 
 
 class ClipFFmpegResponse(BaseModel):
