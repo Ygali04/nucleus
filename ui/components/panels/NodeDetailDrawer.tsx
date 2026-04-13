@@ -2,10 +2,6 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { dummyGraphNodes } from '@/fixtures/graph-nodes';
-import { AgentDetail } from '@/components/panels/AgentDetail';
-import { DatabaseDetail } from '@/components/panels/DatabaseDetail';
-import { SchedulerDetail } from '@/components/panels/SchedulerDetail';
 import { useCanvasStore } from '@/store/canvas-store';
 import { useDashboardStore } from '@/store/dashboard-store';
 
@@ -15,39 +11,13 @@ interface NodeDetailDrawerProps {
 }
 
 export function NodeDetailDrawer({
-  showProviderMetrics = true,
   showProviderControls = true,
-}: NodeDetailDrawerProps) {
+}: NodeDetailDrawerProps = {}) {
   const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
   const selectNode = useCanvasStore((state) => state.selectNode);
-  const agents = useDashboardStore((state) => state.agents);
   const customNodes = useDashboardStore((state) => state.customNodes);
-  const tasks = useDashboardStore((state) => state.tasks);
-  const facts = useDashboardStore((state) => state.facts);
-  const costHistory = useDashboardStore((state) => state.costHistory);
 
-  const selectedNode = [...dummyGraphNodes, ...customNodes].find(
-    (node) => node.id === selectedNodeId,
-  );
-  const selectedAgent = agents.find((agent) => agent.id === selectedNodeId);
-
-  const recentTasks = selectedAgent
-    ? tasks
-        .filter((task) => task.assigned_to === selectedAgent.id)
-        .slice(0, 5)
-        .map((task) => ({
-          id: task.id,
-          title: task.title,
-          status: task.status,
-          timestamp: task.completed_at || task.started_at || task.created_at,
-        }))
-    : [];
-
-  const agentCost = selectedAgent
-    ? costHistory
-        .filter((point) => point.agent === selectedAgent.id)
-        .reduce((total, point) => total + point.cost, 0)
-    : 0;
+  const selectedNode = customNodes.find((node) => node.id === selectedNodeId);
 
   return (
     <AnimatePresence>
@@ -75,66 +45,20 @@ export function NodeDetailDrawer({
             </button>
           </div>
 
-          {selectedAgent ? (
-            <AgentDetail
-              showProviderMetrics={showProviderMetrics}
-              showProviderConfig={showProviderControls}
-              detail={{
-                id: selectedAgent.id,
-                title: selectedNode.label,
-                typeLabel: selectedNode.subtype || 'agent',
-                status: selectedAgent.state.status,
-                statusTone:
-                  selectedAgent.state.status === 'running'
-                    ? 'active'
-                    : selectedAgent.state.status === 'error'
-                      ? 'error'
-                      : 'idle',
-                lastActivity: selectedAgent.state.last_run || 'No recent run',
-                metrics: {
-                  tasksToday: recentTasks.length,
-                  avgDuration: '1m 23s',
-                  costToday: agentCost,
-                  tokens: costHistory
-                    .filter((point) => point.agent === selectedAgent.id)
-                    .reduce((total, point) => total + (point.tokens || 0), 0),
-                  factCount: facts.filter(
-                    (fact) => fact.claimed_by === selectedAgent.id,
-                  ).length,
-                  vectorEntries: 1200 + selectedAgent.depth * 145,
-                  lastLearned:
-                    selectedAgent.config.tags[0] || 'shared context update',
-                },
-                recentTasks,
-                config: {
-                  model: selectedAgent.config.model,
-                  permission: selectedAgent.config.permissions,
-                  maxIterations: selectedAgent.config.max_iterations,
-                  tags: selectedAgent.config.tags,
-                },
-              }}
-            />
-          ) : selectedNode.kind === 'database' ? (
-            <DatabaseDetail
-              title={selectedNode.label}
-              subtitle={selectedNode.subtype || 'database'}
-              statusText={selectedNode.statusText}
-              metaTag={selectedNode.metaTag}
-            />
-          ) : selectedNode.kind === 'scheduler' ? (
-            <SchedulerDetail
-              title={selectedNode.label}
-              statusText={selectedNode.statusText}
-              metaTag={selectedNode.metaTag}
-            />
-          ) : (
-            <DatabaseDetail
-              title={selectedNode.label}
-              subtitle={selectedNode.subtype || selectedNode.kind}
-              statusText={selectedNode.statusText}
-              metaTag={selectedNode.metaTag}
-            />
-          )}
+          <div className="mb-4 text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+            {selectedNode.kind.replace(/_/g, ' ')}
+          </div>
+          <h3 className="mb-2 font-serif text-xl text-[var(--color-ink)]">
+            {selectedNode.label}
+          </h3>
+          <p className="mb-4 text-sm text-[var(--color-muted)]">
+            {selectedNode.statusText}
+          </p>
+          {selectedNode.metaTag ? (
+            <div className="mb-4 inline-flex rounded-full border border-black/10 bg-black/[0.02] px-2 py-0.5 text-[11px] text-[var(--color-muted)]">
+              {selectedNode.metaTag}
+            </div>
+          ) : null}
 
           {showProviderControls ? (
             <div className="mt-8 flex gap-2">
@@ -143,9 +67,6 @@ export function NodeDetailDrawer({
               </button>
               <button className="rounded-md border border-black/10 px-3 py-2 text-sm text-[var(--color-ink)] transition hover:bg-black/[0.03]">
                 Edit Config
-              </button>
-              <button className="rounded-md border border-black/10 px-3 py-2 text-sm text-[var(--color-ink)] transition hover:bg-black/[0.03]">
-                Restart
               </button>
             </div>
           ) : null}

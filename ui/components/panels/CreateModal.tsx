@@ -4,37 +4,84 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCanvasStore } from '@/store/canvas-store';
 import { useDashboardStore } from '@/store/dashboard-store';
+import type { GraphNodeKind } from '@/lib/types';
 
-const tabs = ['Agent', 'Database', 'Scheduler', 'Connector'] as const;
+const tabs = [
+  'Video Gen',
+  'Audio Gen',
+  'Composition',
+  'Scoring',
+  'Editor',
+  'Brand KB',
+  'ICP',
+  'Delivery',
+] as const;
 
-const TAB_META = {
-  Agent: {
-    kind: 'agent' as const,
+const TAB_META: Record<
+  (typeof tabs)[number],
+  {
+    kind: GraphNodeKind;
+    defaultStatus: string;
+    modelPlaceholder: string;
+    metaLabel: string;
+    metaPlaceholder: string;
+  }
+> = {
+  'Video Gen': {
+    kind: 'video_gen',
     defaultStatus: 'idle',
-    modelPlaceholder: 'minimax/minimax-m2.5',
+    modelPlaceholder: 'kling-3.0',
+    metaLabel: 'Provider',
+    metaPlaceholder: 'kling / runway / pika',
+  },
+  'Audio Gen': {
+    kind: 'audio_gen',
+    defaultStatus: 'idle',
+    modelPlaceholder: 'elevenlabs-v2',
+    metaLabel: 'Provider',
+    metaPlaceholder: 'elevenlabs / suno',
+  },
+  Composition: {
+    kind: 'composition',
+    defaultStatus: 'idle',
+    modelPlaceholder: 'remotion',
+    metaLabel: 'Template',
+    metaPlaceholder: 'hero-15s / reel-30s',
+  },
+  Scoring: {
+    kind: 'scoring',
+    defaultStatus: 'idle',
+    modelPlaceholder: 'neural-score-v2',
     metaLabel: 'Model',
-    metaPlaceholder: 'minimax/minimax-m2.5',
+    metaPlaceholder: 'neural-score-v2',
   },
-  Database: {
-    kind: 'database' as const,
-    defaultStatus: 'active',
-    modelPlaceholder: 'postgres',
-    metaLabel: 'Engine',
-    metaPlaceholder: 'postgres / clickhouse / sqlite',
+  Editor: {
+    kind: 'editor',
+    defaultStatus: 'idle',
+    modelPlaceholder: 'edit-agent',
+    metaLabel: 'Edit type',
+    metaPlaceholder: 'hook-rewrite / cta',
   },
-  Scheduler: {
-    kind: 'scheduler' as const,
-    defaultStatus: 'active',
-    modelPlaceholder: 'cron',
-    metaLabel: 'Cadence',
-    metaPlaceholder: 'Every hour / daily / weekly',
+  'Brand KB': {
+    kind: 'brand_kb',
+    defaultStatus: 'idle',
+    modelPlaceholder: 'brand-kb',
+    metaLabel: 'Source',
+    metaPlaceholder: 'brand-docs / site',
   },
-  Connector: {
-    kind: 'service' as const,
-    defaultStatus: 'active',
-    modelPlaceholder: 'erpnext-connector',
-    metaLabel: 'Endpoint',
-    metaPlaceholder: 'erpnext / email / webhook bridge',
+  ICP: {
+    kind: 'icp',
+    defaultStatus: 'idle',
+    modelPlaceholder: 'persona-builder',
+    metaLabel: 'Platform',
+    metaPlaceholder: 'tiktok / instagram / youtube',
+  },
+  Delivery: {
+    kind: 'delivery',
+    defaultStatus: 'idle',
+    modelPlaceholder: 'cdn-delivery',
+    metaLabel: 'Formats',
+    metaPlaceholder: 'mp4 / mov / webm',
   },
 };
 
@@ -42,11 +89,11 @@ export function CreateModal() {
   const isCreateModalOpen = useCanvasStore((state) => state.isCreateModalOpen);
   const closeCreateModal = useCanvasStore((state) => state.closeCreateModal);
   const createEntity = useDashboardStore((state) => state.createEntity);
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('Agent');
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('Video Gen');
   const [name, setName] = useState('');
-  const [status, setStatus] = useState(TAB_META.Agent.defaultStatus);
+  const [status, setStatus] = useState(TAB_META['Video Gen'].defaultStatus);
   const [metaTag, setMetaTag] = useState('');
-  const [subtype, setSubtype] = useState('specialist');
+  const [subtype, setSubtype] = useState('default');
   const [notes, setNotes] = useState('');
 
   const meta = TAB_META[activeTab];
@@ -55,7 +102,7 @@ export function CreateModal() {
     setName('');
     setStatus(meta.defaultStatus);
     setMetaTag('');
-    setSubtype(activeTab === 'Agent' ? 'specialist' : activeTab.toLowerCase());
+    setSubtype('default');
     setNotes('');
   };
 
@@ -68,7 +115,7 @@ export function CreateModal() {
     setActiveTab(tab);
     setStatus(TAB_META[tab].defaultStatus);
     setMetaTag('');
-    setSubtype(tab === 'Agent' ? 'specialist' : tab.toLowerCase());
+    setSubtype('default');
   };
 
   const handleSubmit = () => {
@@ -76,8 +123,9 @@ export function CreateModal() {
     createEntity({
       kind: meta.kind,
       label: name.trim(),
-      subtype: subtype.trim() || activeTab.toLowerCase(),
-      status: status === 'active' ? 'active' : status === 'error' ? 'error' : 'idle',
+      subtype: subtype.trim() || 'default',
+      status:
+        status === 'active' ? 'active' : status === 'error' ? 'error' : 'idle',
       metaTag: metaTag.trim() || meta.modelPlaceholder,
       notes:
         notes.trim() ||
@@ -118,7 +166,7 @@ export function CreateModal() {
               </button>
             </div>
 
-            <div className="mb-5 flex gap-2 border-b border-black/8 pb-4">
+            <div className="mb-5 flex flex-wrap gap-2 border-b border-black/8 pb-4">
               {tabs.map((tab) => (
                 <button
                   key={tab}
@@ -155,7 +203,7 @@ export function CreateModal() {
               />
               <Field
                 label="Subtype"
-                placeholder={activeTab.toLowerCase()}
+                placeholder="default"
                 value={subtype}
                 onChange={setSubtype}
               />

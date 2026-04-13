@@ -151,12 +151,6 @@ export interface TaskQueueResponse {
 }
 
 export type GraphNodeKind =
-  | 'agent'
-  | 'database'
-  | 'scheduler'
-  | 'gateway'
-  | 'service'
-  | 'group'
   | 'video_gen'
   | 'audio_gen'
   | 'composition'
@@ -164,7 +158,8 @@ export type GraphNodeKind =
   | 'editor'
   | 'brand_kb'
   | 'icp'
-  | 'delivery';
+  | 'delivery'
+  | 'group';
 
 /** Pipeline-specific metadata attached to the 5 Nucleus node kinds. */
 export interface VideoGenNodeData {
@@ -302,3 +297,42 @@ export interface WebSocketEventMessage {
 export type DashboardSocketMessage =
   | WebSocketHistoryMessage
   | WebSocketEventMessage;
+
+export type CampaignArchetype =
+  | 'demo'
+  | 'marketing'
+  | 'knowledge'
+  | 'education';
+
+export type CampaignStatus = 'idle' | 'running' | 'scored' | 'failed';
+
+export interface CampaignBrief {
+  goal?: string;
+  audience?: string;
+  tone?: string;
+  notes?: string;
+}
+
+export interface CampaignVariant {
+  id: string;
+  label: string;
+  videoUrl: string | null;
+  neuralScore: number | null;
+  createdAt: string;
+}
+
+export interface Campaign {
+  id: string;
+  archetype: CampaignArchetype;
+  brandName: string;
+  createdAt: string;
+  lastExecutedAt?: string;
+  status: CampaignStatus;
+  variants: CampaignVariant[];
+  bestScore?: number;
+  brief?: CampaignBrief;
+  graph: {
+    nodes: GraphNodeMeta[];
+    edges: GraphEdgeMeta[];
+  };
+}

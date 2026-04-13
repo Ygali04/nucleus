@@ -62,7 +62,7 @@ interface DashboardStore {
   openDeployModal: () => void;
   closeDeployModal: () => void;
   createEntity: (input: {
-    kind: 'agent' | 'database' | 'scheduler' | 'service';
+    kind: GraphNodeMeta['kind'];
     label: string;
     subtype: string;
     status: GraphNodeMeta['status'];
@@ -139,7 +139,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
 
       const nextActivity: ActivityEntry = {
         ts: createdAt,
-        agent: input.kind === 'agent' ? id : 'root',
+        agent: 'root',
         type: 'thinking',
         data: {
           summary: `Staged ${input.kind} "${input.label}" for deployment`,
@@ -154,40 +154,6 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
         kind: input.kind,
         createdAt,
       };
-
-      if (input.kind === 'agent') {
-        const agent: AgentDefinition = {
-          id,
-          prompt:
-            input.notes ||
-            `New ${input.subtype} agent created from the dashboard.`,
-          tools: ['read_file', 'assert_fact'],
-          config: {
-            model: input.metaTag || 'minimax/minimax-m2.5',
-            temperature: 0.4,
-            max_tokens: 4096,
-            max_iterations: 8,
-            permissions: 'analyst',
-            tags: [input.subtype || 'new'],
-            parent: 'root',
-          },
-          state: {
-            status: input.status === 'active' ? 'running' : 'idle',
-            total_cost_usd: 0,
-            run_count: 0,
-            modifications_today: 0,
-          },
-          memory: input.notes || `${input.label} staged from dashboard.`,
-          depth: 1,
-        };
-
-        return {
-          demoAgents: [...state.demoAgents, agent],
-          agents: mergeAgents(state.agents, [agent]),
-          stagedChanges: [...state.stagedChanges, stagedChange],
-          activity: [nextActivity, ...state.activity].slice(0, 150),
-        };
-      }
 
       const customNode: GraphNodeMeta = {
         id,
