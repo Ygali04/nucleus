@@ -11,4 +11,4 @@ COPY nucleus ./nucleus
 
 RUN pip install --no-cache-dir .
 
-CMD ["celery", "-A", "nucleus.worker.celery_app", "worker", "--loglevel=info"]
+CMD ["celery", "-A", "nucleus.worker.tasks", "worker", "--loglevel=info", "--concurrency=1"]

@@ -7,6 +7,11 @@ real Postgres instance to exercise the asyncpg driver.
 Schema is created once per session via :func:`nucleus.db.migrate.upgrade_head`;
 individual tests are responsible for cleaning up (via ``store.reset()`` or
 their own fixtures).
+
+Also forces the event bus into in-process-only mode (no Redis) and flips all
+providers into mock mode so tests never hit external services.  Opt-in tests
+that exercise the Redis publish path monkeypatch ``nucleus.events`` (see
+``test_worker.py``).
 """
 
 from __future__ import annotations
@@ -17,6 +22,10 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
+# Force env state BEFORE nucleus.* modules import and read settings.
+os.environ.setdefault("NUCLEUS_NO_REDIS", "1")
+os.environ.setdefault("NUCLEUS_MOCK_PROVIDERS", "true")
 
 
 def _install_test_database_url() -> tuple[str, Path | None]:
