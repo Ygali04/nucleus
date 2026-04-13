@@ -10,14 +10,11 @@ import os
 from functools import lru_cache
 from typing import TypeVar
 
+from nucleus.config import is_mock as _use_mocks
 from nucleus.providers.base import AudioProvider, MusicProvider, VideoProvider
 from nucleus.providers.mock import MockAudioProvider, MockMusicProvider, MockVideoProvider
 
 _T = TypeVar("_T")
-
-
-def _use_mocks() -> bool:
-    return os.environ.get("NUCLEUS_MOCK_PROVIDERS", "").lower() in ("1", "true", "yes")
 
 
 class ProviderRegistry:
@@ -41,22 +38,42 @@ class ProviderRegistry:
         self._audio_providers["mock"] = MockAudioProvider()
         self._music_providers["mock"] = MockMusicProvider()
 
-        if not _use_mocks():
-            self._register_real_providers()
+        if _use_mocks():
+            # In mock mode every name routes to the mock provider.
+            return
+
+        self._register_real_providers()
 
     def _register_real_providers(self) -> None:
-        # Only import Kling when actually needed (requires FAL_KEY)
+        # --- video ---
+        try:
+            from nucleus.providers.kling import KlingVideoProvider
+
+            self._video_providers["kling"] = KlingVideoProvider()
+        except EnvironmentError:
+            pass
+
+        # Seedance + MagiHuman don't raise on construction even without keys;
+        # they just fail at generate() time.  Safe to register eagerly.
+        from nucleus.providers.magihuman import MagiHumanProvider
+        from nucleus.providers.seedance import SeedanceProvider
+
+        self._video_providers["seedance"] = SeedanceProvider()
+        self._video_providers["magihuman"] = MagiHumanProvider()
+
         video_backend = os.environ.get("NUCLEUS_VIDEO_PROVIDER", "kling")
+        if video_backend in self._video_providers:
+            self._video_providers["default"] = self._video_providers[video_backend]
 
-        if video_backend == "kling":
-            try:
-                from nucleus.providers.kling import KlingVideoProvider
+        # --- audio / music ---
+        from nucleus.providers.elevenlabs_provider import ElevenLabsProvider
+        from nucleus.providers.lyria import LyriaProvider
 
-                self._video_providers["kling"] = KlingVideoProvider()
-                self._video_providers["default"] = self._video_providers["kling"]
-            except EnvironmentError:
-                # FAL_KEY missing -- fall through to mock default
-                pass
+        self._audio_providers["elevenlabs"] = ElevenLabsProvider()
+        self._audio_providers["default"] = self._audio_providers["elevenlabs"]
+
+        self._music_providers["lyria"] = LyriaProvider()
+        self._music_providers["default"] = self._music_providers["lyria"]
 
     # ------------------------------------------------------------------
     # Public API
@@ -65,7 +82,9 @@ class ProviderRegistry:
     @staticmethod
     def _resolve(registry: dict[str, _T], name: str, kind: str) -> _T:
         """Look up a provider by *name*, falling back to ``"mock"``."""
-        if _use_mocks() and name == "default":
+        # Re-check the toggle on every lookup so flipping it at runtime
+        # (e.g. between tests) immediately routes to the mock provider.
+        if _use_mocks():
             name = "mock"
         provider = registry.get(name) or registry.get("mock")
         if provider is None:

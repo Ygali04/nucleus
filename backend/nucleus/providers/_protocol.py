@@ -71,9 +71,11 @@ class BaseVideoProvider:
     _env_key_name: str  # e.g. "ATLAS_CLOUD_API_KEY"
 
     def __init__(self, api_key: str | None = None, base_url: str = "") -> None:
+        from nucleus.config import is_mock
+
         self.api_key = api_key or os.environ.get(self._env_key_name, "")
         self.base_url = base_url.rstrip("/")
-        self.mock = os.environ.get("NUCLEUS_MOCK_PROVIDERS", "false").lower() == "true"
+        self.mock = is_mock()
         self._client: httpx.AsyncClient | None = None
 
     # ------------------------------------------------------------------

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import os
-
+from nucleus.config import google_cloud_project, is_mock
 from nucleus.providers._types import AudioResult, MusicProvider
 
 __all__ = ["AudioResult", "LyriaProvider", "MusicProvider"]
@@ -20,13 +19,11 @@ class LyriaProvider:
         project_id: str | None = None,
         location: str = "us-central1",
     ) -> None:
-        self.project_id: str = project_id or os.environ.get(
-            "GOOGLE_CLOUD_PROJECT", ""
+        self.project_id: str = (
+            project_id if project_id is not None else google_cloud_project()
         )
         self.location: str = location
-        self.mock: bool = (
-            os.environ.get("NUCLEUS_MOCK_PROVIDERS", "false").lower() == "true"
-        )
+        self.mock: bool = is_mock()
         self._ai_initialized: bool = False
 
     def _ensure_ai_platform(self) -> None:

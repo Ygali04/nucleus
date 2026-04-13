@@ -2,15 +2,26 @@
 
 from __future__ import annotations
 
-from nucleus.tools.mock_fixtures import is_mock, mock_audio_url
+from nucleus.config import is_mock
+from nucleus.providers import get_provider
+from nucleus.tools.mock_fixtures import mock_audio_url
 from nucleus.tools.schemas import GenerateMusicRequest, GenerateMusicResponse
-
-LYRIA_COST_PER_SECOND = 0.002
 
 
 async def generate_music(req: GenerateMusicRequest) -> GenerateMusicResponse:
-    cost = req.duration_s * LYRIA_COST_PER_SECOND
+    if is_mock():
+        return GenerateMusicResponse(
+            audio_url=mock_audio_url("music"),
+            cost_usd=0.0,
+        )
+
+    provider = get_provider("music", "lyria")
+    result = await provider.generate_music(
+        prompt=req.prompt,
+        duration_s=req.duration_s,
+        mood=req.mood,
+    )
     return GenerateMusicResponse(
-        audio_url=mock_audio_url("music"),
-        cost_usd=0.0 if is_mock() else cost,
+        audio_url=result.audio_url,
+        cost_usd=result.cost_usd,
     )

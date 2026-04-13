@@ -1,20 +1,18 @@
-"""generate_video tool — produces a video clip from a text prompt."""
+"""generate_video tool — produces a video clip from a text prompt.
+
+Routes to the concrete provider named in ``req.provider`` via the provider
+registry.  Honors ``NUCLEUS_MOCK_PROVIDERS=true`` (mock fixture data, zero
+cost) regardless of which provider was requested.
+"""
 
 from __future__ import annotations
 
 from uuid import uuid4
 
-from nucleus.tools.mock_fixtures import is_mock, mock_video_url
+from nucleus.config import is_mock
+from nucleus.providers import get_provider
+from nucleus.tools.mock_fixtures import mock_video_url
 from nucleus.tools.schemas import GenerateVideoRequest, GenerateVideoResponse
-
-# Cost per second for each provider (from research).
-PROVIDER_COST: dict[str, float] = {
-    "mock": 0.0,
-    "kling": 0.084,
-    "seedance": 0.022,
-    "magihuman": 0.035,
-    "veo": 0.40,
-}
 
 
 async def generate_video(req: GenerateVideoRequest) -> GenerateVideoResponse:
@@ -27,13 +25,17 @@ async def generate_video(req: GenerateVideoRequest) -> GenerateVideoResponse:
             provider="mock",
         )
 
-    # Real provider routing would happen here (nucleus.providers.registry).
-    # For now, use per-provider pricing to simulate cost while still returning a mock URL.
-    cost = req.duration_s * PROVIDER_COST.get(req.provider, 0.084)
-    return GenerateVideoResponse(
-        video_url=mock_video_url(req.provider),
-        cost_usd=cost,
-        provider_job_id=str(uuid4()),
+    provider = get_provider("video", req.provider)
+    result = await provider.generate(
+        prompt=req.prompt,
         duration_s=req.duration_s,
-        provider=req.provider,
+        aspect_ratio=req.aspect_ratio,
+        reference_image=req.reference_image,
+    )
+    return GenerateVideoResponse(
+        video_url=result.video_url,
+        cost_usd=result.cost_usd,
+        provider_job_id=result.provider_job_id,
+        duration_s=result.duration_s,
+        provider=result.provider,
     )
