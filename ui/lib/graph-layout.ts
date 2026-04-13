@@ -13,6 +13,7 @@ export interface CanvasNodeData extends Record<string, unknown> {
   status: GraphNodeMeta['status'];
   statusText: string;
   metaTag?: string | null;
+  campaignId?: string | null;
   data?: Record<string, unknown>;
 }
 

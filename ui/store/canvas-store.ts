@@ -11,6 +11,7 @@ interface CanvasStore {
   nodePositions: Record<string, XYPosition>;
   isCreateModalOpen: boolean;
   isActivityPanelCollapsed: boolean;
+  openNodeModalId: string | null;
   selectNode: (nodeId: string | null) => void;
   highlightNode: (nodeId: string | null) => void;
   setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
@@ -18,6 +19,8 @@ interface CanvasStore {
   openCreateModal: () => void;
   closeCreateModal: () => void;
   toggleActivityPanel: () => void;
+  openNodeModal: (nodeId: string) => void;
+  closeNodeModal: () => void;
 }
 
 export const useCanvasStore = create<CanvasStore>()(
@@ -29,6 +32,7 @@ export const useCanvasStore = create<CanvasStore>()(
       nodePositions: {},
       isCreateModalOpen: false,
       isActivityPanelCollapsed: false,
+      openNodeModalId: null,
       selectNode: (selectedNodeId) => set({ selectedNodeId }),
       highlightNode: (highlightedNodeId) => set({ highlightedNodeId }),
       setViewport: (viewport) => set({ viewport }),
@@ -42,6 +46,8 @@ export const useCanvasStore = create<CanvasStore>()(
         set((state) => ({
           isActivityPanelCollapsed: !state.isActivityPanelCollapsed,
         })),
+      openNodeModal: (nodeId) => set({ openNodeModalId: nodeId }),
+      closeNodeModal: () => set({ openNodeModalId: null }),
     }),
     {
       name: 'gs-dashboard-canvas',
