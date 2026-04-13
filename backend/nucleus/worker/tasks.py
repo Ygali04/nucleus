@@ -45,6 +45,13 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
+# Eager mode for local smoke / dev without Redis: NUCLEUS_EAGER_TASKS=1 makes
+# .delay() run synchronously in-process and skip the broker entirely.
+if os.getenv("NUCLEUS_EAGER_TASKS", "").strip().lower() in ("1", "true", "yes"):
+    celery_app.conf.task_always_eager = True
+    celery_app.conf.task_eager_propagates = True
+    celery_app.conf.task_store_eager_result = False
+
 
 def _run_sync(coro: Coroutine[Any, Any, Any]) -> Any:
     """Run an async coroutine from sync Celery code.

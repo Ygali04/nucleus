@@ -167,29 +167,50 @@ async def _run(args: argparse.Namespace) -> int:
 
     job_id: str = brief_resp["job_id"]
     candidate_count: int = brief_resp.get("candidate_count", 0)
-    ws_url = brief_resp.get("websocket_url") or (
-        api_url.replace("http", "ws") + f"/ws/job/{job_id}"
-    )
+    raw_ws_url = brief_resp.get("websocket_url") or f"/ws/job/{job_id}"
+    if raw_ws_url.startswith(("ws://", "wss://")):
+        ws_url = raw_ws_url
+    else:
+        # Relative path — bolt onto the API base, flipping http[s] → ws[s].
+        base = api_url.rstrip("/")
+        ws_base = "ws" + base[len("http"):]
+        ws_url = ws_base + (raw_ws_url if raw_ws_url.startswith("/") else f"/{raw_ws_url}")
 
     print(f"Brief submitted — job_id={job_id}, candidates={candidate_count}")
-    print(f"Streaming events from {ws_url} ...")
 
-    try:
-        events, final_event = await _stream_events(ws_url, args.timeout)
-    except (OSError, websockets.exceptions.WebSocketException) as exc:
-        print(f"! websocket error: {exc}")
-        return 1
-
-    if final_event is None:
-        print("! no terminal event received — treating as failure")
-        return 1
-
-    final_type = final_event.get("event_type", "")
-    if final_type.endswith(".failed"):
-        print(f"! job failed: {json.dumps(final_event, default=str)}")
-        return 1
-
+    # Eager-mode paths (NUCLEUS_EAGER_TASKS=1) run the loop synchronously before
+    # we can open the WebSocket, so events have already fired and nothing will
+    # be streamed. Check candidate status first; if everything is already
+    # COMPLETE, skip streaming.
     candidates = await _list_job_candidates(api_url, job_id)
+    already_done = bool(candidates) and all(
+        (c.get("state") or "").upper() == "COMPLETE" for c in candidates
+    )
+
+    events: list[dict[str, Any]] = []
+    final_event: dict[str, Any] | None = None
+
+    if not already_done:
+        print(f"Streaming events from {ws_url} ...")
+        try:
+            events, final_event = await _stream_events(ws_url, args.timeout)
+        except (OSError, websockets.exceptions.WebSocketException) as exc:
+            print(f"! websocket error: {exc}")
+            return 1
+
+        if final_event is None:
+            print("! no terminal event received — treating as failure")
+            return 1
+
+        final_type = final_event.get("event_type", "")
+        if final_type.endswith(".failed"):
+            print(f"! job failed: {json.dumps(final_event, default=str)}")
+            return 1
+
+        candidates = await _list_job_candidates(api_url, job_id)
+    else:
+        print("(eager-completed before WS opened — using candidate status)")
+
     best_score, variants, total_cost = _summarise(candidates, events)
 
     score_str = f"{best_score:.1f}" if best_score is not None else "n/a"
