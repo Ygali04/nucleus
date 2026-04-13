@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono, Playfair_Display } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { NewCampaignModal } from '@/components/campaigns/NewCampaignModal';
 import { Header } from '@/components/layout/Header';
 import { Toolbar } from '@/components/layout/Toolbar';
 import './globals.css';
@@ -39,6 +40,7 @@ export default function RootLayout({
           <Header />
           <Toolbar />
           <main className="min-h-[calc(100vh-92px)]">{children}</main>
+          <NewCampaignModal />
         </div>
       </body>
     </html>
