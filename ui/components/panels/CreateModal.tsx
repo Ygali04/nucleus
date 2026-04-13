@@ -167,7 +167,7 @@ export function CreateModal() {
               </span>
               <textarea
                 rows={4}
-                className="w-full rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-brass)]"
+                className="w-full rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-primary)]"
                 placeholder="Describe the new node, intended role, and dependencies."
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
@@ -213,7 +213,7 @@ function Field({
         {label}
       </span>
       <input
-        className="w-full rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-brass)]"
+        className="w-full rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-primary)]"
         placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(event.target.value)}

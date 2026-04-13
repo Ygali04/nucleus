@@ -61,7 +61,7 @@ export function DeployModal() {
             </div>
 
             <div className="rounded-2xl border border-black/8 bg-black/[0.015] p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
                 Staged changes
               </div>
               <div className="mt-3 space-y-3">
@@ -80,7 +80,7 @@ export function DeployModal() {
                           {new Date(change.createdAt).toLocaleTimeString()}
                         </div>
                       </div>
-                      <span className="rounded-full border border-[var(--color-brass)]/30 bg-[var(--color-brass)]/10 px-3 py-1 text-xs text-[var(--color-ink)]">
+                      <span className="rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-3 py-1 text-xs text-[var(--color-ink)]">
                         Pending
                       </span>
                     </div>
@@ -111,7 +111,7 @@ export function DeployModal() {
                 disabled={isDeploying || stagedChanges.length === 0}
                 onClick={handleDeploy}
               >
-                <Rocket className="h-4 w-4 text-[var(--color-brass)]" />
+                <Rocket className="h-4 w-4 text-[var(--color-primary)]" />
                 {isDeploying ? 'Deploying...' : 'Deploy staged changes'}
               </button>
             </div>

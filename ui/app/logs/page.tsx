@@ -52,7 +52,7 @@ export default function LogsPage() {
           Logs
         </div>
         <h1 className="mt-2 font-serif text-4xl text-[var(--color-ink)]">
-          Structured Runtime Feed
+          Pipeline Runtime Feed
         </h1>
       </div>
 

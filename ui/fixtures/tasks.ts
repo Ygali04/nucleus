@@ -209,8 +209,8 @@ export const dummyTasks: Task[] = definitions.map(
       required_tools: ['read_file', 'assert_fact'],
       required_tags: ['finance'],
       context: {
-        portfolio: 'Gravy Truck Holdings',
-        workstream: index % 2 === 0 ? 'portfolio' : 'operations',
+        brief: 'Acme Launch Brief',
+        stage: index % 2 === 0 ? 'generation' : 'scoring',
       },
       created_at: createdAt,
       started_at: startedAt,

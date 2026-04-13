@@ -23,12 +23,12 @@ export function LogFilters({
         value={search}
         onChange={(event) => onSearch(event.target.value)}
         placeholder="Search logs"
-        className="rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-brass)]"
+        className="rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-primary)]"
       />
       <select
         value={level}
         onChange={(event) => onLevel(event.target.value)}
-        className="rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-brass)]"
+        className="rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-primary)]"
       >
         <option value="all">All levels</option>
         <option value="info">Info</option>
@@ -38,7 +38,7 @@ export function LogFilters({
       <select
         value={agent}
         onChange={(event) => onAgent(event.target.value)}
-        className="rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-brass)]"
+        className="rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 outline-none transition focus:border-[var(--color-primary)]"
       >
         <option value="all">All agents</option>
         {agents.map((agentName) => (

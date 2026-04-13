@@ -1,16 +1,18 @@
 import {
+  AudioLines,
   BellRing,
-  Bot,
+  Brain,
   Cable,
   ChartColumn,
-  Clock3,
-  Database,
+  Film,
   Globe,
-  Hexagon,
-  Monitor,
+  Layers,
+  LineChart,
+  Package,
+  PencilRuler,
   Plug,
-  Search,
-  Server,
+  Sparkles,
+  Target,
   Zap,
 } from 'lucide-react';
 
@@ -21,10 +23,6 @@ export const BRAND = {
   primaryLight: '#818cf8',
   primaryDark: '#3730a3',
   primarySoft: '#eef2ff',
-  /** @deprecated use `primary` */
-  brass: '#4f46e5',
-  /** @deprecated use `primaryLight` */
-  brassLight: '#818cf8',
   muted: '#777777',
   faint: '#aaaaaa',
   dark: '#111111',
@@ -54,22 +52,22 @@ export const BOTTOM_ACTIONS = [
   { id: 'network', label: 'Network', icon: Globe },
   { id: 'scale', label: 'Scale', icon: ChartColumn },
   { id: 'monitor', label: 'Monitor', icon: BellRing },
-  { id: 'evolve', label: 'Evolve', icon: Hexagon },
+  { id: 'evolve', label: 'Evolve', icon: Sparkles },
 ] as const;
 
 export const NODE_ICON_MAP = {
-  orchestrator: Hexagon,
-  analyst: Bot,
-  temporal: Clock3,
-  frontend: Monitor,
-  gateway: Plug,
+  orchestrator: Sparkles,
+  analyst: Brain,
+  temporal: PencilRuler,
+  frontend: Target,
+  gateway: Package,
   connector: Cable,
-  service: Server,
-  postgres: Database,
-  redis: Zap,
-  elasticsearch: Search,
+  service: Film,
+  postgres: Layers,
+  redis: AudioLines,
+  elasticsearch: LineChart,
   metabase: ChartColumn,
-  scheduler: Clock3,
+  scheduler: Plug,
   docs: Globe,
 } as const;
 
@@ -78,7 +76,7 @@ export const STATUS_MAP = {
   warning: { color: BRAND.warning, label: 'Warning' },
   error: { color: BRAND.error, label: 'Error' },
   idle: { color: BRAND.idle, label: 'Idle' },
-  new: { color: BRAND.brass, label: 'New' },
+  new: { color: BRAND.primary, label: 'New' },
 } as const;
 
 export const DEFAULT_NODE_SIZE = {

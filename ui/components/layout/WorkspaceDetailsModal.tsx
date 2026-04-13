@@ -22,10 +22,10 @@ function getSurfaceCopy(surface: DashboardSurface) {
 
   return {
     eyebrow: 'Project Details',
-    title: 'Client Developer Workspace',
+    title: 'Creator Workspace',
     description:
-      'This view exposes task flow, deliverables, and project-safe activity without provider diagnostics or spend telemetry.',
-    visibility: 'Client-safe project operations',
+      'This view exposes pipeline flow, variants, and project-safe activity without provider diagnostics or render-spend telemetry.',
+    visibility: 'Creator-safe project operations',
   };
 }
 
@@ -84,15 +84,15 @@ export function WorkspaceDetailsModal({
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
-              <DetailCard label="Mode" value={isLiveMode ? 'Live runtime' : 'Demo'} />
+              <DetailCard label="Mode" value={isLiveMode ? 'Live pipeline' : 'Demo'} />
               <DetailCard label="Active agents" value={String(activeAgents)} />
               <DetailCard label="Open tasks" value={String(openTasks)} />
-              <DetailCard label="Completed reports" value={String(completedTasks)} />
+              <DetailCard label="Variants delivered" value={String(completedTasks)} />
             </div>
 
             <div className="mt-6 grid gap-5 xl:grid-cols-[1.3fr,1fr]">
               <section className="rounded-2xl border border-black/8 bg-black/[0.015] p-5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
                   Workspace Snapshot
                 </div>
                 <div className="mt-4 space-y-3 text-sm text-[var(--color-muted)]">
@@ -112,14 +112,14 @@ export function WorkspaceDetailsModal({
               </section>
 
               <section className="rounded-2xl border border-black/8 bg-black/[0.015] p-5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
                   Available Actions
                 </div>
                 <div className="mt-4 space-y-3 text-sm text-[var(--color-muted)]">
                   <p>
                     {surface === 'provider'
                       ? 'Details, Sync, Create, and Deploy are available here for Nucleus Pipeline operators.'
-                      : 'Client developers can inspect workspace details and trigger a fresh sync of project-safe data.'}
+                      : 'Creators can inspect workspace details and trigger a fresh sync of project-safe data.'}
                   </p>
                   {surface === 'provider' ? (
                     <p>
@@ -127,7 +127,7 @@ export function WorkspaceDetailsModal({
                     </p>
                   ) : (
                     <p>
-                      Provider-only diagnostics, deployment controls, and topology mutation are intentionally hidden from this client surface.
+                      Provider-only diagnostics, deployment controls, and topology mutation are intentionally hidden from this creator surface.
                     </p>
                   )}
                 </div>

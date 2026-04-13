@@ -25,10 +25,10 @@ export function Toolbar() {
     surface === 'provider'
       ? stagedChanges.length > 0
         ? `${stagedChanges.length} unapplied ${stagedChanges.length === 1 ? 'change' : 'changes'}`
-        : 'Runtime topology aligned'
+        : 'Pipeline topology aligned'
       : surface === 'project'
-        ? 'Client-safe project view'
-        : 'Executive report history';
+        ? 'Creator project view'
+        : 'Executive variant history';
 
   const canViewDetails = surface !== 'executive';
   const canSync = surface !== 'executive';
@@ -44,7 +44,7 @@ export function Toolbar() {
     <>
       <div className="flex h-10 items-center justify-between border-b border-black/8 bg-[var(--color-canvas)] px-5">
         <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10 px-3 py-1 text-xs font-medium text-[var(--color-ink)]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)]/35 bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-medium text-[var(--color-ink)]">
             <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--color-warning)]" />
             {title}
           </div>
@@ -85,10 +85,10 @@ export function Toolbar() {
           ) : null}
           {canCreate ? (
             <button
-              className="inline-flex items-center gap-2 rounded-md border border-[var(--color-brass)] bg-[var(--color-dark)] px-3 py-1 text-sm text-white transition hover:opacity-95"
+              className="inline-flex items-center gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-dark)] px-3 py-1 text-sm text-white transition hover:opacity-95"
               onClick={openCreateModal}
             >
-              <Sparkles className="h-3.5 w-3.5 text-[var(--color-brass)]" />
+              <Sparkles className="h-3.5 w-3.5 text-[var(--color-primary)]" />
               Create
             </button>
           ) : null}

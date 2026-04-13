@@ -24,7 +24,7 @@ export function TaskChart({
         <Tooltip />
         <Bar
           dataKey="completed"
-          fill="var(--color-brass)"
+          fill="var(--color-primary)"
           radius={[6, 6, 0, 0]}
         />
       </BarChart>

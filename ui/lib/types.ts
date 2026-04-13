@@ -134,7 +134,7 @@ export interface CostHistoryPoint {
 
 export interface StateResponse {
   agents: Array<Record<string, unknown>>;
-  agencyDir: string;
+  pipelineDir: string;
 }
 
 export interface TaskQueueColumn {

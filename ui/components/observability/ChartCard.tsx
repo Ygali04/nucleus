@@ -10,7 +10,7 @@ export function ChartCard({ title, subtitle, children }: ChartCardProps) {
   return (
     <div className="gs-card rounded-2xl p-5">
       <div className="mb-4">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
           {title}
         </div>
         {subtitle ? (

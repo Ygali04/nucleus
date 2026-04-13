@@ -68,7 +68,7 @@ export function AgentDetail({
       </div>
 
       <section>
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
           Recent Tasks
         </div>
         <div className="space-y-2">
@@ -90,7 +90,7 @@ export function AgentDetail({
       </section>
 
       <section>
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
           Memory
         </div>
         <div className="rounded-lg border border-black/8 bg-black/[0.015] px-4 py-3 text-sm text-[var(--color-muted)]">
@@ -105,7 +105,7 @@ export function AgentDetail({
       </section>
 
       <section>
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brass)]">
+        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
           Configuration
         </div>
         <div className="space-y-2 text-sm text-[var(--color-muted)]">

@@ -28,7 +28,7 @@ export function BottomBar() {
               key={action.id}
               className={`flex h-full items-center gap-2 border-t-2 px-2 text-sm transition ${
                 active
-                  ? 'border-[var(--color-brass)] text-[var(--color-brass)]'
+                  ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                   : 'border-transparent text-white/60 hover:text-white'
               }`}
               onClick={() => setSelectedBottomAction(action.id)}
