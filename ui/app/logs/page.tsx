@@ -3,47 +3,51 @@
 import { useMemo, useState } from 'react';
 import { LogFilters } from '@/components/logs/LogFilters';
 import { LogViewer } from '@/components/logs/LogViewer';
-import { useActivity } from '@/hooks/useActivity';
-import { useDashboardStore } from '@/store/dashboard-store';
+import { usePipelineEvents } from '@/hooks/usePipelineEvents';
+import type { PipelineEventSeverity } from '@/lib/types';
+import { useEventsStore } from '@/store/events-store';
 
 export default function LogsPage() {
-  useActivity(500);
-  const activity = useDashboardStore((state) => state.activity);
+  usePipelineEvents();
+  const events = useEventsStore((state) => state.events);
+
   const [search, setSearch] = useState('');
-  const [level, setLevel] = useState('all');
-  const [agent, setAgent] = useState('all');
+  const [severity, setSeverity] = useState<'all' | PipelineEventSeverity>('all');
+  const [campaign, setCampaign] = useState('all');
+  const [eventTypePrefixes, setEventTypePrefixes] = useState<string[]>([]);
 
-  const agents = useMemo(
-    () => Array.from(new Set(activity.map((entry) => entry.agent))).sort(),
-    [activity],
+  const campaigns = useMemo(
+    () => Array.from(new Set(events.map((e) => e.campaignId))).sort(),
+    [events],
   );
 
-  const entries = useMemo(
+  const filtered = useMemo(
     () =>
-      activity.filter((entry) => {
-        const levelMatch =
-          level === 'all'
-            ? true
-            : level === 'error'
-              ? entry.type === 'error' || entry.type === 'task_failed'
-              : level === 'warn'
-                ? entry.type === 'reflection' || entry.type === 'preempted'
-                : !(
-                    entry.type === 'error' ||
-                    entry.type === 'task_failed' ||
-                    entry.type === 'reflection' ||
-                    entry.type === 'preempted'
-                  );
-
-        const agentMatch = agent === 'all' ? true : entry.agent === agent;
-        const searchMatch = search
-          ? JSON.stringify(entry).toLowerCase().includes(search.toLowerCase())
-          : true;
-
-        return levelMatch && agentMatch && searchMatch;
+      events.filter((event) => {
+        if (severity !== 'all' && event.severity !== severity) return false;
+        if (campaign !== 'all' && event.campaignId !== campaign) return false;
+        if (
+          eventTypePrefixes.length > 0 &&
+          !eventTypePrefixes.some((p) => event.eventType.startsWith(p))
+        ) {
+          return false;
+        }
+        if (search) {
+          const needle = search.toLowerCase();
+          const hay = `${event.eventType} ${event.message ?? ''} ${JSON.stringify(event.payload)}`.toLowerCase();
+          if (!hay.includes(needle)) return false;
+        }
+        return true;
       }),
-    [activity, agent, level, search],
+    [events, severity, campaign, eventTypePrefixes, search],
   );
+
+  const toggleEventType = (prefix: string) =>
+    setEventTypePrefixes((current) =>
+      current.includes(prefix)
+        ? current.filter((p) => p !== prefix)
+        : [...current, prefix],
+    );
 
   return (
     <div className="px-5 py-6">
@@ -52,20 +56,25 @@ export default function LogsPage() {
           Logs
         </div>
         <h1 className="mt-2 font-serif text-4xl text-[var(--color-ink)]">
-          Pipeline Runtime Feed
+          Pipeline Runtime
         </h1>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">
+          Events emitted during campaign execution.
+        </p>
       </div>
 
       <LogFilters
         search={search}
-        level={level}
-        agent={agent}
-        agents={agents}
+        severity={severity}
+        campaign={campaign}
+        campaigns={campaigns}
+        eventTypePrefixes={eventTypePrefixes}
         onSearch={setSearch}
-        onLevel={setLevel}
-        onAgent={setAgent}
+        onSeverity={setSeverity}
+        onCampaign={setCampaign}
+        onToggleEventType={toggleEventType}
       />
-      <LogViewer entries={entries} />
+      <LogViewer events={filtered} />
     </div>
   );
 }

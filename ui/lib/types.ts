@@ -302,3 +302,17 @@ export interface WebSocketEventMessage {
 export type DashboardSocketMessage =
   | WebSocketHistoryMessage
   | WebSocketEventMessage;
+
+export type PipelineEventSeverity = 'info' | 'warn' | 'error';
+
+export interface PipelineEvent {
+  id: string;
+  timestamp: string;
+  campaignId: string;
+  eventType: string;
+  severity?: PipelineEventSeverity;
+  candidateIndex?: number;
+  iterationIndex?: number;
+  message?: string;
+  payload: Record<string, unknown>;
+}

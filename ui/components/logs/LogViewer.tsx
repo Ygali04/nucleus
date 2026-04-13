@@ -1,70 +1,54 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { List, type RowComponentProps } from 'react-window';
+import { useState } from 'react';
 import { LogRow } from '@/components/logs/LogRow';
-import type { ActivityEntry } from '@/lib/types';
+import type { PipelineEvent } from '@/lib/types';
 
 interface LogViewerProps {
-  entries: ActivityEntry[];
+  events: PipelineEvent[];
 }
 
-interface RowProps {
-  entries: ActivityEntry[];
-  expandedId: string | null;
-  onToggle: (id: string) => void;
-}
-
-function Row({
-  index,
-  style,
-  entries,
-  expandedId,
-  onToggle,
-}: RowComponentProps<RowProps>) {
-  const entry = entries[index];
-  const key = `${entry.ts}-${entry.agent}-${index}`;
-  return (
-    <LogRow
-      entry={entry}
-      expanded={expandedId === key}
-      onToggle={() => onToggle(key)}
-      style={style}
-    />
-  );
-}
-
-export function LogViewer({ entries }: LogViewerProps) {
+export function LogViewer({ events }: LogViewerProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const rowHeight = useMemo(
-    () => (index: number) => {
-      const entry = entries[index];
-      const key = `${entry.ts}-${entry.agent}-${index}`;
-      return expandedId === key ? 168 : 72;
-    },
-    [entries, expandedId],
-  );
+  if (events.length === 0) {
+    return (
+      <div className="gs-card overflow-hidden rounded-2xl">
+        <div className="border-b border-black/8 px-4 py-3 text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          Pipeline events
+        </div>
+        <div className="px-4 py-16 text-center text-sm text-[var(--color-muted)]">
+          No events yet. Run a campaign to see runtime events here.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="gs-card overflow-hidden rounded-2xl">
       <div className="border-b border-black/8 px-4 py-3 text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        Structured activity log
+        Pipeline events
       </div>
-      <List
-        className="gs-scroll"
-        style={{ height: 620 }}
-        defaultHeight={620}
-        rowCount={entries.length}
-        rowHeight={rowHeight}
-        rowComponent={Row}
-        rowProps={{
-          entries,
-          expandedId,
-          onToggle: (id: string) =>
-            setExpandedId((current) => (current === id ? null : id)),
-        }}
-      />
+      <div className="grid grid-cols-[120px_140px_180px_80px_80px_1fr] gap-3 border-b border-black/6 px-4 py-2 text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+        <div>Timestamp</div>
+        <div>Campaign</div>
+        <div>Event type</div>
+        <div>Candidate</div>
+        <div>Iteration</div>
+        <div>Message</div>
+      </div>
+      <div className="gs-scroll max-h-[620px] overflow-y-auto">
+        {events.map((event) => (
+          <LogRow
+            key={event.id}
+            event={event}
+            expanded={expandedId === event.id}
+            onToggle={() =>
+              setExpandedId((current) => (current === event.id ? null : event.id))
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }
