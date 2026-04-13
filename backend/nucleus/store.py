@@ -254,6 +254,33 @@ async def update_iteration_score(iteration_id: str, score: ScoreBreakdown) -> No
         await session.commit()
 
 
+async def update_iteration_edit_type(
+    iteration_id: str, edit_type: EditType | None
+) -> None:
+    """Persist an ``edit_type`` change made by the orchestrator after creation."""
+    async with AsyncSessionLocal() as session:
+        iteration = await session.get(IterationRow, iteration_id)
+        if iteration is None:
+            return
+        iteration.edit_type = edit_type.value if edit_type else None
+        await session.commit()
+
+
+async def update_iteration_video_url(iteration_id: str, video_url: str) -> None:
+    """Persist a ``video_url`` change made after iteration creation.
+
+    The orchestrator creates an iteration with an empty URL when a
+    ``candidate.generating`` event arrives, then learns the URL on the
+    subsequent ``candidate.scored`` / ``candidate.edited`` event.
+    """
+    async with AsyncSessionLocal() as session:
+        iteration = await session.get(IterationRow, iteration_id)
+        if iteration is None:
+            return
+        iteration.video_url = video_url
+        await session.commit()
+
+
 async def list_iterations(candidate_id: str) -> list[Iteration]:
     async with AsyncSessionLocal() as session:
         result = await session.execute(

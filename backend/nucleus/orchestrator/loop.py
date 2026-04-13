@@ -41,7 +41,9 @@ from nucleus.store import (
     get_candidate,
     list_iterations,
     save_candidate,
+    update_iteration_edit_type,
     update_iteration_score,
+    update_iteration_video_url,
 )
 
 
@@ -182,9 +184,12 @@ async def _apply_ruflo_event(
         raw_edit = event.get("edit_type")
         if isinstance(raw_edit, str):
             try:
-                iteration.edit_type = EditType(raw_edit)
+                edit = EditType(raw_edit)
             except ValueError:
-                pass
+                edit = None
+            if edit is not None:
+                iteration.edit_type = edit
+                await update_iteration_edit_type(iteration.id, edit)
         return idx
 
     if kind == "candidate.delivered":
@@ -201,6 +206,7 @@ async def _ensure_iteration(candidate_id: str, index: int, video_url: str):
         if it.index == index:
             if video_url and not it.video_url:
                 it.video_url = video_url
+                await update_iteration_video_url(it.id, video_url)
             return it
     return await create_iteration(candidate_id, index, video_url)
 
@@ -335,8 +341,9 @@ async def _run_candidate_loop_mock(candidate: CandidateSpec) -> None:
         })
 
         video_url = await _mock_edit_variant(candidate, edit_type, i + 1)
-        iteration = await create_iteration(candidate.id, i + 1, video_url)
-        iteration.edit_type = edit_type
+        iteration = await create_iteration(
+            candidate.id, i + 1, video_url, edit_type=edit_type
+        )
         cost_so_far += 0.05
 
         candidate.state = JobState.GENERATING

@@ -83,28 +83,35 @@ def reload_settings() -> Settings:
 
 # --- Backward-compat thin wrappers (callers from WU-J and WU-F) -------------
 def is_mock() -> bool:
-    """Return True when every provider should return canned fixtures."""
+    """Return True when every provider should return canned fixtures.
+
+    Reads live so tests that ``monkeypatch.setenv("NUCLEUS_MOCK_PROVIDERS", ...)``
+    see the change without rebuilding the settings singleton.
+    """
+    raw = os.environ.get("NUCLEUS_MOCK_PROVIDERS")
+    if raw is not None:
+        return raw.strip().lower() in ("1", "true", "yes", "on")
     return bool(settings.nucleus_mock_providers)
 
 
 def fal_key() -> str:
-    return settings.fal_key or ""
+    return os.environ.get("FAL_KEY") or settings.fal_key or ""
 
 
 def elevenlabs_api_key() -> str:
-    return settings.elevenlabs_api_key or ""
+    return os.environ.get("ELEVENLABS_API_KEY") or settings.elevenlabs_api_key or ""
 
 
 def google_cloud_project() -> str:
-    return settings.google_cloud_project or ""
+    return os.environ.get("GOOGLE_CLOUD_PROJECT") or settings.google_cloud_project or ""
 
 
 def wavespeed_api_key() -> str:
-    return settings.wavespeed_api_key or ""
+    return os.environ.get("WAVESPEED_API_KEY") or settings.wavespeed_api_key or ""
 
 
 def atlas_cloud_api_key() -> str:
-    return settings.atlas_cloud_api_key or ""
+    return os.environ.get("ATLAS_CLOUD_API_KEY") or settings.atlas_cloud_api_key or ""
 
 
 def neuropeer_base_url() -> str:
