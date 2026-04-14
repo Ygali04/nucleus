@@ -7,15 +7,23 @@ import {
   Controls,
   ReactFlow,
   ReactFlowProvider,
+  addEdge,
+  applyEdgeChanges,
   applyNodeChanges,
+  reconnectEdge,
   useEdgesState,
   useNodesState,
   useReactFlow,
+  type Connection,
+  type Edge,
+  type EdgeChange,
   type Node,
   type NodeChange,
   type NodeTypes,
   type EdgeTypes,
 } from '@xyflow/react';
+import { useCampaignsStore } from '@/store/campaigns-store';
+import { useSearchParams } from 'next/navigation';
 import {
   buildCanvasEdges,
   buildCanvasNodes,
@@ -112,8 +120,17 @@ function FlowCanvas({
 }: ArchitectureCanvasProps) {
   const selectNode = useCanvasStore((state) => state.selectNode);
   const nodePositions = useCanvasStore((state) => state.nodePositions);
+  const setNodePosition = useCanvasStore((state) => state.setNodePosition);
   const viewport = useCanvasStore((state) => state.viewport);
   const setViewport = useCanvasStore((state) => state.setViewport);
+
+  const searchParams = useSearchParams();
+  const campaignId = searchParams.get('campaign');
+  const storeAddEdge = useCampaignsStore((s) => s.addEdge);
+  const storeUpdateCampaign = useCampaignsStore((s) => s.updateCampaign);
+  const campaign = useCampaignsStore((s) =>
+    campaignId ? s.campaigns.find((c) => c.id === campaignId) : null,
+  );
 
   const builtNodes = useMemo(
     () => buildCanvasNodes(initialNodes, nodePositions),
@@ -136,6 +153,58 @@ function FlowCanvas({
     setNodes(
       (current) => applyNodeChanges(changes, current) as Node<CanvasNodeData>[],
     );
+    // Persist drag positions back to the canvas-store so they survive re-mount.
+    for (const change of changes) {
+      if (change.type === 'position' && change.position && change.dragging === false) {
+        setNodePosition(change.id, change.position);
+      }
+    }
+  };
+
+  const onEdgesChange = (changes: EdgeChange[]) => {
+    setEdges((current) => applyEdgeChanges(changes, current));
+  };
+
+  const onConnect = (connection: Connection) => {
+    if (!campaignId) return;
+    const newEdge = {
+      id: `e-${connection.source}-${connection.target}-${Math.random().toString(36).slice(2, 6)}`,
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle ?? undefined,
+      targetHandle: connection.targetHandle ?? undefined,
+      kind: 'dataflow' as const,
+    };
+    storeAddEdge(campaignId, newEdge);
+    setEdges((current) => addEdge({ ...newEdge, type: 'typed' }, current));
+  };
+
+  const onReconnect = (oldEdge: Edge, newConnection: Connection) => {
+    if (!campaignId) return;
+    setEdges((current) => reconnectEdge(oldEdge, newConnection, current));
+    // Mirror into the campaign's persistent edge list.
+    if (campaign && campaign.graph && typeof campaign.graph === 'object') {
+      const graph = campaign.graph as unknown as {
+        nodes?: unknown[];
+        edges?: Array<Record<string, unknown>>;
+      };
+      const graphEdges = graph.edges ?? [];
+      const nextEdges = graphEdges.map((e) =>
+        e.id === oldEdge.id
+          ? {
+              ...e,
+              source: newConnection.source ?? e.source,
+              target: newConnection.target ?? e.target,
+              sourceHandle: newConnection.sourceHandle ?? e.sourceHandle,
+              targetHandle: newConnection.targetHandle ?? e.targetHandle,
+            }
+          : e,
+      );
+      storeUpdateCampaign(
+        campaignId,
+        { graph: { ...graph, edges: nextEdges } } as Record<string, unknown>,
+      );
+    }
   };
 
   return (
@@ -149,8 +218,14 @@ function FlowCanvas({
         fitView
         minZoom={0.35}
         maxZoom={1.8}
-        nodesDraggable={false}
+        nodesDraggable
+        nodesConnectable
+        edgesFocusable
+        elementsSelectable
         onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onReconnect={onReconnect}
         onNodeClick={(_, node) => selectNode(node.id)}
         defaultViewport={viewport}
         onMoveEnd={(_, nextViewport) => {
@@ -160,7 +235,7 @@ function FlowCanvas({
             zoom: nextViewport.zoom,
           });
         }}
-        defaultEdgeOptions={{ selectable: false, type: 'typed' }}
+        defaultEdgeOptions={{ selectable: true, reconnectable: true, type: 'typed' }}
       >
         <Background gap={20} size={1} color="rgba(26,26,26,0.05)" />
         <Controls

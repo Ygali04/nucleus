@@ -19,8 +19,8 @@ export interface ArchetypeConfig {
   defaultEdges: GraphEdgeMeta[];
 }
 
-const COL = 280;
-const ROW = 180;
+const COL = 320;
+const ROW = 200;
 
 /** Shape a single seed node with sensible defaults. */
 function seedNode(
@@ -93,15 +93,21 @@ const DEMO_NODES: GraphNodeMeta[] = [
   seedNode('demo-delivery', 'Delivery', 'delivery', 8, 0),
 ];
 
+// Closed-loop semantics: brand + ICP fan out to generators; report feeds editor;
+// composition feeds editor source video; scoring-2 can loop back to editor for
+// additional passes below threshold.
 const DEMO_EDGES: GraphEdgeMeta[] = [
-  dataflow('demo-e1', 'demo-brandkb', 'demo-icp'),
-  dataflow('demo-e2', 'demo-icp', 'demo-videogen'),
-  dataflow('demo-e3', 'demo-videogen', 'demo-audiogen'),
-  dataflow('demo-e4', 'demo-audiogen', 'demo-composition'),
-  dataflow('demo-e5', 'demo-composition', 'demo-scoring-1'),
-  dataflow('demo-e6', 'demo-scoring-1', 'demo-editor'),
-  dataflow('demo-e7', 'demo-editor', 'demo-scoring-2'),
-  dataflow('demo-e8', 'demo-scoring-2', 'demo-delivery'),
+  dataflow('demo-e1', 'demo-brandkb', 'demo-videogen'),
+  dataflow('demo-e2', 'demo-brandkb', 'demo-audiogen'),
+  dataflow('demo-e3', 'demo-icp', 'demo-videogen'),
+  dataflow('demo-e4', 'demo-icp', 'demo-audiogen'),
+  dataflow('demo-e5', 'demo-videogen', 'demo-composition'),
+  dataflow('demo-e6', 'demo-audiogen', 'demo-composition'),
+  dataflow('demo-e7', 'demo-composition', 'demo-scoring-1'),
+  dataflow('demo-e8', 'demo-composition', 'demo-editor'),
+  dataflow('demo-e9', 'demo-scoring-1', 'demo-editor'),
+  dataflow('demo-e10', 'demo-editor', 'demo-scoring-2'),
+  dataflow('demo-e11', 'demo-scoring-2', 'demo-delivery'),
 ];
 
 /** Marketing: branching hero ad with b-roll. */
@@ -134,17 +140,25 @@ const MARKETING_NODES: GraphNodeMeta[] = [
   seedNode('marketing-delivery', 'Delivery', 'delivery', 8, 0),
 ];
 
+// Closed-loop marketing: brand + ICP fan out to both generators; scoring's
+// REPORT feeds the editor (action items drive the edit decision); composition
+// feeds editor as source video; rescore loops back to editor on dependency.
 const MARKETING_EDGES: GraphEdgeMeta[] = [
-  dataflow('marketing-e1', 'marketing-brandkb', 'marketing-icp'),
-  dataflow('marketing-e2', 'marketing-icp', 'marketing-videogen-hero'),
-  dataflow('marketing-e3', 'marketing-icp', 'marketing-videogen-broll'),
-  dataflow('marketing-e4', 'marketing-videogen-hero', 'marketing-audiogen'),
-  dataflow('marketing-e5', 'marketing-videogen-broll', 'marketing-composition'),
-  dataflow('marketing-e6', 'marketing-audiogen', 'marketing-composition'),
-  dataflow('marketing-e7', 'marketing-composition', 'marketing-scoring-1'),
-  dataflow('marketing-e8', 'marketing-scoring-1', 'marketing-editor'),
-  dataflow('marketing-e9', 'marketing-editor', 'marketing-scoring-2'),
-  dataflow('marketing-e10', 'marketing-scoring-2', 'marketing-delivery'),
+  dataflow('marketing-e1', 'marketing-brandkb', 'marketing-videogen-hero'),
+  dataflow('marketing-e2', 'marketing-brandkb', 'marketing-videogen-broll'),
+  dataflow('marketing-e3', 'marketing-brandkb', 'marketing-audiogen'),
+  dataflow('marketing-e4', 'marketing-icp', 'marketing-videogen-hero'),
+  dataflow('marketing-e5', 'marketing-icp', 'marketing-videogen-broll'),
+  dataflow('marketing-e6', 'marketing-icp', 'marketing-audiogen'),
+  dataflow('marketing-e7', 'marketing-videogen-hero', 'marketing-composition'),
+  dataflow('marketing-e8', 'marketing-videogen-broll', 'marketing-composition'),
+  dataflow('marketing-e9', 'marketing-audiogen', 'marketing-composition'),
+  dataflow('marketing-e10', 'marketing-composition', 'marketing-scoring-1'),
+  // Closed-loop: report + source video flow into editor
+  dataflow('marketing-e11', 'marketing-scoring-1', 'marketing-editor'),
+  dataflow('marketing-e12', 'marketing-composition', 'marketing-editor'),
+  dataflow('marketing-e13', 'marketing-editor', 'marketing-scoring-2'),
+  dataflow('marketing-e14', 'marketing-scoring-2', 'marketing-delivery'),
 ];
 
 /** Knowledge: 3-iteration explainer. */
@@ -181,17 +195,23 @@ const KNOWLEDGE_NODES: GraphNodeMeta[] = [
   seedNode('knowledge-delivery', 'Delivery', 'delivery', 10, 0),
 ];
 
+// Knowledge: 3 scoring/edit iterations, each editor takes both the prior
+// iteration's video AND the scoring report (closed-loop per pass).
 const KNOWLEDGE_EDGES: GraphEdgeMeta[] = [
-  dataflow('knowledge-e1', 'knowledge-brandkb', 'knowledge-icp'),
-  dataflow('knowledge-e2', 'knowledge-icp', 'knowledge-videogen'),
-  dataflow('knowledge-e3', 'knowledge-videogen', 'knowledge-audiogen'),
-  dataflow('knowledge-e4', 'knowledge-audiogen', 'knowledge-composition'),
-  dataflow('knowledge-e5', 'knowledge-composition', 'knowledge-scoring-1'),
-  dataflow('knowledge-e6', 'knowledge-scoring-1', 'knowledge-editor-1'),
-  dataflow('knowledge-e7', 'knowledge-editor-1', 'knowledge-scoring-2'),
-  dataflow('knowledge-e8', 'knowledge-scoring-2', 'knowledge-editor-2'),
-  dataflow('knowledge-e9', 'knowledge-editor-2', 'knowledge-scoring-3'),
-  dataflow('knowledge-e10', 'knowledge-scoring-3', 'knowledge-delivery'),
+  dataflow('knowledge-e1', 'knowledge-brandkb', 'knowledge-videogen'),
+  dataflow('knowledge-e2', 'knowledge-brandkb', 'knowledge-audiogen'),
+  dataflow('knowledge-e3', 'knowledge-icp', 'knowledge-videogen'),
+  dataflow('knowledge-e4', 'knowledge-icp', 'knowledge-audiogen'),
+  dataflow('knowledge-e5', 'knowledge-videogen', 'knowledge-composition'),
+  dataflow('knowledge-e6', 'knowledge-audiogen', 'knowledge-composition'),
+  dataflow('knowledge-e7', 'knowledge-composition', 'knowledge-scoring-1'),
+  dataflow('knowledge-e8', 'knowledge-scoring-1', 'knowledge-editor-1'),
+  dataflow('knowledge-e9', 'knowledge-composition', 'knowledge-editor-1'),
+  dataflow('knowledge-e10', 'knowledge-editor-1', 'knowledge-scoring-2'),
+  dataflow('knowledge-e11', 'knowledge-scoring-2', 'knowledge-editor-2'),
+  dataflow('knowledge-e12', 'knowledge-editor-1', 'knowledge-editor-2'),
+  dataflow('knowledge-e13', 'knowledge-editor-2', 'knowledge-scoring-3'),
+  dataflow('knowledge-e14', 'knowledge-scoring-3', 'knowledge-delivery'),
 ];
 
 /** Education: tutorial with lighter loop. */
@@ -219,14 +239,17 @@ const EDUCATION_NODES: GraphNodeMeta[] = [
 ];
 
 const EDUCATION_EDGES: GraphEdgeMeta[] = [
-  dataflow('education-e1', 'education-brandkb', 'education-icp'),
-  dataflow('education-e2', 'education-icp', 'education-videogen-a'),
-  dataflow('education-e3', 'education-icp', 'education-videogen-b'),
-  dataflow('education-e4', 'education-videogen-a', 'education-audiogen'),
-  dataflow('education-e5', 'education-videogen-b', 'education-composition'),
-  dataflow('education-e6', 'education-audiogen', 'education-composition'),
-  dataflow('education-e7', 'education-composition', 'education-scoring'),
-  dataflow('education-e8', 'education-scoring', 'education-delivery'),
+  dataflow('education-e1', 'education-brandkb', 'education-videogen-a'),
+  dataflow('education-e2', 'education-brandkb', 'education-videogen-b'),
+  dataflow('education-e3', 'education-brandkb', 'education-audiogen'),
+  dataflow('education-e4', 'education-icp', 'education-videogen-a'),
+  dataflow('education-e5', 'education-icp', 'education-videogen-b'),
+  dataflow('education-e6', 'education-icp', 'education-audiogen'),
+  dataflow('education-e7', 'education-videogen-a', 'education-composition'),
+  dataflow('education-e8', 'education-videogen-b', 'education-composition'),
+  dataflow('education-e9', 'education-audiogen', 'education-composition'),
+  dataflow('education-e10', 'education-composition', 'education-scoring'),
+  dataflow('education-e11', 'education-scoring', 'education-delivery'),
 ];
 
 export const ARCHETYPE_CONFIGS: Record<CampaignArchetype, ArchetypeConfig> = {

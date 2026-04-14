@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Play, Plus } from 'lucide-react';
+import { Check, ChevronDown, Pencil, Play, Plus, X } from 'lucide-react';
 import type { Campaign, GraphNodeKind, GraphNodeMeta } from '@/lib/types';
 import { useCampaignsStore } from '@/store/campaigns-store';
 
@@ -67,10 +67,28 @@ export function CanvasToolbar({
 }: CanvasToolbarProps) {
   const executeCampaign = useCampaignsStore((state) => state.executeCampaign);
   const addNode = useCampaignsStore((state) => state.addNode);
+  const updateCampaign = useCampaignsStore((state) => state.updateCampaign);
   const [addOpen, setAddOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(campaign.brand_name);
 
   const runDisabled = isRunDisabled(campaign) || campaign.status === 'running';
   const pill = STATUS_PILL[campaign.status];
+
+  const commitName = () => {
+    const next = nameDraft.trim();
+    if (next && next !== campaign.brand_name) {
+      updateCampaign(campaign.id, { brand_name: next });
+    } else {
+      setNameDraft(campaign.brand_name);
+    }
+    setIsEditingName(false);
+  };
+
+  const cancelNameEdit = () => {
+    setNameDraft(campaign.brand_name);
+    setIsEditingName(false);
+  };
 
   const handleAdd = (kind: GraphNodeKind) => {
     const id = `${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -93,9 +111,49 @@ export function CanvasToolbar({
         <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">
           Campaign
         </span>
-        <span className="text-sm font-semibold text-[var(--color-ink)]">
-          {campaign.brand_name}
-        </span>
+        {isEditingName ? (
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitName();
+                if (e.key === 'Escape') cancelNameEdit();
+              }}
+              className="w-40 rounded-sm border border-[var(--color-primary)]/40 bg-white px-1 py-0.5 text-sm font-semibold text-[var(--color-ink)] outline-none focus:border-[var(--color-primary)]"
+            />
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={commitName}
+              className="rounded p-0.5 text-emerald-600 hover:bg-emerald-50"
+            >
+              <Check className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={cancelNameEdit}
+              className="rounded p-0.5 text-rose-600 hover:bg-rose-50"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setNameDraft(campaign.brand_name);
+              setIsEditingName(true);
+            }}
+            className="group inline-flex items-center gap-1 text-left text-sm font-semibold text-[var(--color-ink)] hover:text-[var(--color-primary)]"
+          >
+            {campaign.brand_name}
+            <Pencil className="h-3 w-3 opacity-0 transition group-hover:opacity-70" />
+          </button>
+        )}
       </div>
 
       <span

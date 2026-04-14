@@ -13,57 +13,45 @@ interface TypedHandleProps {
   position: Position;
   dataType: NodeDataType;
   offset: number;
-  showLabel?: boolean;
 }
 
+/**
+ * Colored handle dot. Data type is communicated via the border color;
+ * full label lives on the edge midpoint (see TypedEdge). We deliberately
+ * do NOT render a text label next to the handle — it caused visual
+ * collisions with the node header at small node widths.
+ */
 export function TypedHandle({
   id,
   type,
   position,
   dataType,
   offset,
-  showLabel = true,
 }: TypedHandleProps) {
   const color = DATA_TYPE_COLOR[dataType];
-  const label = DATA_TYPE_LABEL[dataType];
-  const isLeft = position === Position.Left;
   const topStyle = { top: `${offset}px` } as const;
 
   return (
-    <>
-      <Handle
-        id={id}
-        type={type}
-        position={position}
-        style={{
-          ...topStyle,
-          width: 10,
-          height: 10,
-          background: 'white',
-          border: `2px solid ${color}`,
-          boxShadow: `0 0 0 1px rgba(0,0,0,0.04)`,
-        }}
-      />
-      {showLabel ? (
-        <span
-          className="pointer-events-none absolute font-mono text-[9px] uppercase tracking-[0.14em]"
-          style={{
-            top: `${offset - 6}px`,
-            [isLeft ? 'left' : 'right']: '14px',
-            color,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {label}
-        </span>
-      ) : null}
-    </>
+    <Handle
+      id={id}
+      type={type}
+      position={position}
+      title={DATA_TYPE_LABEL[dataType]}
+      style={{
+        ...topStyle,
+        width: 10,
+        height: 10,
+        background: 'white',
+        border: `2px solid ${color}`,
+        boxShadow: `0 0 0 1px rgba(0,0,0,0.04)`,
+      }}
+    />
   );
 }
 
 interface NodeHandlesProps {
   kind: GraphNodeKind;
-  showLabels?: boolean;
+  showLabels?: boolean; // kept for back-compat; ignored.
 }
 
 /**
@@ -71,7 +59,7 @@ interface NodeHandlesProps {
  * distributed vertically along each side. Handle ids follow `in-<type>-<i>` /
  * `out-<type>-<i>` so edges can reference them explicitly.
  */
-export function NodeHandles({ kind, showLabels = true }: NodeHandlesProps) {
+export function NodeHandles({ kind }: NodeHandlesProps) {
   const io = NODE_IO_MAP[kind] ?? { inputs: [], outputs: [] };
 
   return (
@@ -84,7 +72,6 @@ export function NodeHandles({ kind, showLabels = true }: NodeHandlesProps) {
           position={Position.Left}
           dataType={dataType}
           offset={spread(i, io.inputs.length)}
-          showLabel={showLabels}
         />
       ))}
       {io.outputs.map((dataType, i) => (
@@ -95,7 +82,6 @@ export function NodeHandles({ kind, showLabels = true }: NodeHandlesProps) {
           position={Position.Right}
           dataType={dataType}
           offset={spread(i, io.outputs.length)}
-          showLabel={showLabels}
         />
       ))}
     </>
@@ -103,8 +89,10 @@ export function NodeHandles({ kind, showLabels = true }: NodeHandlesProps) {
 }
 
 function spread(index: number, total: number): number {
-  if (total <= 1) return 28;
-  const start = 18;
+  // Push handles below the 28px-tall node header so they can't overlap
+  // the icon + label row. Multiple handles stack 22px apart.
+  if (total <= 1) return 56;
+  const start = 42;
   const step = 22;
   return start + index * step;
 }
