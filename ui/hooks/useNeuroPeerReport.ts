@@ -1,52 +1,36 @@
-import { useCallback, useEffect, useState } from 'react';
+'use client';
 
-import { apiClient, type CampaignReport } from '@/lib/api-client';
+import { useMemo } from 'react';
+import { findFixtureReport } from '@/fixtures/neuropeer-reports';
+import type { NeuroPeerReport } from '@/lib/types';
 import { useCampaignsStore } from '@/store/campaigns-store';
 
-interface UseNeuroPeerReport {
-  reports: CampaignReport[];
-  isLoading: boolean;
-  error: Error | null;
-  refresh: () => Promise<void>;
+interface UseNeuroPeerReportResult {
+  report: NeuroPeerReport | null;
+  loading: boolean;
+  error: string | null;
 }
 
-/**
- * Fetch NeuroPeer analysis reports for a campaign.
- *
- * Prefers the backend at ``/api/v1/campaigns/{id}/reports`` and falls back to
- * whatever the campaigns store has cached locally (populated via
- * ``useCampaignsStore.loadReports``) when the request fails.
- */
-export function useNeuroPeerReport(campaignId: string | null): UseNeuroPeerReport {
-  const cached = useCampaignsStore((s) =>
-    campaignId ? s.reportsByCampaign[campaignId] ?? [] : [],
-  );
-  const updateCache = useCampaignsStore((s) => s.loadReports);
+export function useNeuroPeerReport(
+  variantId: string | null,
+): UseNeuroPeerReportResult {
+  const reportsByCampaign = useCampaignsStore((s) => s.reportsByCampaign);
 
-  const [reports, setReports] = useState<CampaignReport[]>(cached);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchReports = useCallback(async () => {
-    if (!campaignId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const remote = await apiClient.listCampaignReports(campaignId);
-      setReports(remote);
-      // Sync the store so siblings see the same list without refetching.
-      await updateCache(campaignId).catch(() => undefined);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-      setReports(cached);
-    } finally {
-      setIsLoading(false);
+  return useMemo(() => {
+    if (!variantId) {
+      return { report: null, loading: false, error: null };
     }
-  }, [campaignId, cached, updateCache]);
-
-  useEffect(() => {
-    void fetchReports();
-  }, [fetchReports]);
-
-  return { reports, isLoading, error, refresh: fetchReports };
+    for (const reports of Object.values(reportsByCampaign)) {
+      const match = reports.find((r) => r.iteration_id === variantId);
+      if (match) {
+        return {
+          report: match.analysis_result as unknown as NeuroPeerReport,
+          loading: false,
+          error: null,
+        };
+      }
+    }
+    const fixture = findFixtureReport(variantId);
+    return { report: fixture, loading: false, error: null };
+  }, [reportsByCampaign, variantId]);
 }

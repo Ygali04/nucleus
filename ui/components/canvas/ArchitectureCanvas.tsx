@@ -21,33 +21,22 @@ import {
   buildCanvasNodes,
   type CanvasNodeData,
 } from '@/lib/graph-layout';
+import type { GraphEdgeMeta, GraphNodeMeta } from '@/lib/types';
 import { useCanvasStore } from '@/store/canvas-store';
-import { useDashboardStore } from '@/store/dashboard-store';
 import { Minimap } from '@/components/canvas/Minimap';
-import { AgentNode } from '@/components/canvas/nodes/AgentNode';
 import { AudioGenNode } from '@/components/canvas/nodes/AudioGenNode';
 import { BrandKBNode } from '@/components/canvas/nodes/BrandKBNode';
 import { CompositionNode } from '@/components/canvas/nodes/CompositionNode';
-import { DatabaseNode } from '@/components/canvas/nodes/DatabaseNode';
 import { DeliveryNode } from '@/components/canvas/nodes/DeliveryNode';
 import { EditorNode } from '@/components/canvas/nodes/EditorNode';
-import { GatewayNode } from '@/components/canvas/nodes/GatewayNode';
 import { GroupNode } from '@/components/canvas/nodes/GroupNode';
 import { ICPNode } from '@/components/canvas/nodes/ICPNode';
-import { SchedulerNode } from '@/components/canvas/nodes/SchedulerNode';
 import { ScoringNode } from '@/components/canvas/nodes/ScoringNode';
-import { ServiceNode } from '@/components/canvas/nodes/ServiceNode';
 import { VideoGenNode } from '@/components/canvas/nodes/VideoGenNode';
 import { DataFlowEdge } from '@/components/canvas/edges/DataFlowEdge';
 import { DependencyEdge } from '@/components/canvas/edges/DependencyEdge';
 
 const nodeTypes: NodeTypes = {
-  agent: AgentNode,
-  database: DatabaseNode,
-  scheduler: SchedulerNode,
-  gateway: GatewayNode,
-  service: ServiceNode,
-  group: GroupNode,
   video_gen: VideoGenNode,
   audio_gen: AudioGenNode,
   composition: CompositionNode,
@@ -56,12 +45,18 @@ const nodeTypes: NodeTypes = {
   brand_kb: BrandKBNode,
   icp: ICPNode,
   delivery: DeliveryNode,
+  group: GroupNode,
 };
 
 const edgeTypes: EdgeTypes = {
   dataflow: DataFlowEdge,
   dependency: DependencyEdge,
 };
+
+interface ArchitectureCanvasProps {
+  initialNodes?: GraphNodeMeta[];
+  initialEdges?: GraphEdgeMeta[];
+}
 
 function FlowSync({
   nodes,
@@ -102,58 +97,31 @@ function FlowSync({
   return null;
 }
 
-function FlowCanvas() {
-  const agents = useDashboardStore((state) => state.agents);
-  const customNodes = useDashboardStore((state) => state.customNodes);
+function FlowCanvas({
+  initialNodes = [],
+  initialEdges = [],
+}: ArchitectureCanvasProps) {
   const selectNode = useCanvasStore((state) => state.selectNode);
   const nodePositions = useCanvasStore((state) => state.nodePositions);
   const viewport = useCanvasStore((state) => state.viewport);
   const setViewport = useCanvasStore((state) => state.setViewport);
 
-  const nodesWithRuntime = useMemo(() => {
-    const runtimeMap = new Map(
-      agents.map((agent) => [
-        agent.id,
-        {
-          status:
-            agent.state.status === 'running'
-              ? 'active'
-              : agent.state.status === 'error'
-                ? 'error'
-                : agent.state.status === 'disabled'
-                  ? 'idle'
-                  : 'idle',
-          statusText:
-            agent.state.status === 'running'
-              ? 'Agent active'
-              : agent.state.last_error || 'Standing by',
-          metaTag: agent.config.model,
-        },
-      ]),
-    );
+  const builtNodes = useMemo(
+    () => buildCanvasNodes(initialNodes, nodePositions),
+    [initialNodes, nodePositions],
+  );
+  const builtEdges = useMemo(() => buildCanvasEdges(initialEdges), [initialEdges]);
 
-    return buildCanvasNodes(nodePositions, agents, customNodes).map((node) => {
-      const runtime = runtimeMap.get(node.id);
-      if (!runtime) return node;
-
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          status: runtime.status,
-          statusText: runtime.statusText,
-          metaTag: node.data.metaTag || runtime.metaTag,
-        },
-      };
-    }) as Node<CanvasNodeData>[];
-  }, [agents, customNodes, nodePositions]);
-
-  const [nodes, setNodes] = useNodesState(nodesWithRuntime);
-  const [edges] = useEdgesState(buildCanvasEdges());
+  const [nodes, setNodes] = useNodesState(builtNodes);
+  const [edges, setEdges] = useEdgesState(builtEdges);
 
   useEffect(() => {
-    setNodes(nodesWithRuntime);
-  }, [nodesWithRuntime, setNodes]);
+    setNodes(builtNodes);
+  }, [builtNodes, setNodes]);
+
+  useEffect(() => {
+    setEdges(builtEdges);
+  }, [builtEdges, setEdges]);
 
   const onNodesChange = (changes: NodeChange[]) => {
     setNodes(
@@ -202,10 +170,10 @@ function FlowCanvas() {
   );
 }
 
-export function ArchitectureCanvas() {
+export function ArchitectureCanvas(props: ArchitectureCanvasProps = {}) {
   return (
     <ReactFlowProvider>
-      <FlowCanvas />
+      <FlowCanvas {...props} />
     </ReactFlowProvider>
   );
 }

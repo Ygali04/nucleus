@@ -151,12 +151,6 @@ export interface TaskQueueResponse {
 }
 
 export type GraphNodeKind =
-  | 'agent'
-  | 'database'
-  | 'scheduler'
-  | 'gateway'
-  | 'service'
-  | 'group'
   | 'video_gen'
   | 'audio_gen'
   | 'composition'
@@ -164,7 +158,8 @@ export type GraphNodeKind =
   | 'editor'
   | 'brand_kb'
   | 'icp'
-  | 'delivery';
+  | 'delivery'
+  | 'group';
 
 /** Pipeline-specific metadata attached to the 5 Nucleus node kinds. */
 export interface VideoGenNodeData {
@@ -318,26 +313,90 @@ export interface CampaignBrief {
   notes?: string;
 }
 
-export interface CampaignVariant {
-  id: string;
-  label: string;
-  videoUrl: string | null;
-  neuralScore: number | null;
-  createdAt: string;
+// --- NeuroPeer report types (mirror backend/models/schemas.py) --------------
+
+export interface NeuralScoreBreakdown {
+  total: number;
+  hook_score: number;
+  sustained_attention: number;
+  emotional_resonance: number;
+  memory_encoding: number;
+  aesthetic_quality: number;
+  cognitive_accessibility: number;
 }
 
-export interface Campaign {
-  id: string;
-  archetype: CampaignArchetype;
-  brandName: string;
-  createdAt: string;
-  lastExecutedAt?: string;
-  status: CampaignStatus;
-  variants: CampaignVariant[];
-  bestScore?: number;
-  brief?: CampaignBrief;
-  graph: {
-    nodes: GraphNodeMeta[];
-    edges: GraphEdgeMeta[];
-  };
+export interface MetricScore {
+  name: string;
+  score: number;
+  raw_value: number;
+  description: string;
+  brain_region: string;
+  gtm_proxy: string;
 }
+
+export type KeyMomentType =
+  | 'best_hook'
+  | 'peak_engagement'
+  | 'emotional_peak'
+  | 'dropoff_risk'
+  | 'recovery';
+
+export interface KeyMoment {
+  timestamp: number;
+  type: KeyMomentType;
+  label: string;
+  score: number;
+}
+
+export interface ModalityContribution {
+  timestamp: number;
+  visual: number;
+  audio: number;
+  text: number;
+}
+
+export interface NeuroPeerReport {
+  job_id: string;
+  neural_score: NeuralScoreBreakdown;
+  attention_curve: number[];
+  emotional_arousal_curve: number[];
+  cognitive_load_curve: number[];
+  metrics: MetricScore[];
+  key_moments: KeyMoment[];
+  modality_breakdown: ModalityContribution[];
+  ai_summary: string;
+  ai_action_items: string[];
+  ai_report_title: string;
+  parent_job_id?: string;
+  content_group_id?: string;
+}
+
+export type NeuralDimensionKey = keyof Omit<NeuralScoreBreakdown, 'total'>;
+
+export const NEURAL_DIMENSIONS: ReadonlyArray<{
+  key: NeuralDimensionKey;
+  label: string;
+}> = [
+  { key: 'hook_score', label: 'Hook' },
+  { key: 'sustained_attention', label: 'Sustained Attention' },
+  { key: 'emotional_resonance', label: 'Emotional Resonance' },
+  { key: 'memory_encoding', label: 'Memory Encoding' },
+  { key: 'aesthetic_quality', label: 'Aesthetic Quality' },
+  { key: 'cognitive_accessibility', label: 'Cognitive Accessibility' },
+];
+
+export interface PipelineEvent {
+  id: string;
+  timestamp: string;
+  campaignId?: string;
+  eventType: string;
+  severity?: 'info' | 'warn' | 'error';
+  candidateIndex?: number;
+  iterationIndex?: number;
+  message?: string;
+  payload?: Record<string, unknown>;
+}
+
+export type PipelineEventSeverity = 'info' | 'warn' | 'error';
+
+export type { Campaign } from '@/lib/api-client';

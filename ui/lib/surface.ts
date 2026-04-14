@@ -20,3 +20,5 @@ export function isActiveNav(pathname: string | null, href: string): boolean {
   if (href === '/campaigns') return pathname === '/' || pathname.startsWith('/campaigns');
   return pathname.startsWith(href);
 }
+
+export const SURFACE_SCORE_THRESHOLD = 72;

@@ -14,11 +14,6 @@ const SWAP_TARGETS: Partial<Record<GraphNodeKind, GraphNodeKind[]>> = {
 };
 
 const KIND_LABEL: Record<GraphNodeKind, string> = {
-  agent: 'Agent',
-  database: 'Database',
-  scheduler: 'Scheduler',
-  gateway: 'Gateway',
-  service: 'Service',
   group: 'Group',
   video_gen: 'VideoGen',
   audio_gen: 'AudioGen',
