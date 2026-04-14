@@ -125,20 +125,21 @@ services:
       - nucleus-remotion-out:/app/out
       - /tmp/nucleus:/tmp/nucleus
 
-  # ComfyUI execution service for open-weights diffusion / audio workflows.
-  # CPU-only dev image by default; see comfyui/README.md for the GPU swap.
+  # ComfyUI API-proxy orchestration layer (fal.ai, ElevenLabs, ...).
+  # CPU-only by design — no local model execution. See comfyui/README.md.
   comfyui:
     build:
       context: ./comfyui
       dockerfile: Dockerfile
     ports:
       - "8188:8188"
+    environment:
+      FAL_KEY: ${FAL_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
     volumes:
       - /tmp/nucleus/comfyui-out:/tmp/nucleus/comfyui-out
-      - nucleus-comfyui-models:/app/comfyui/models
 
 volumes:
   nucleus-pgdata:
   nucleus-minio:
   nucleus-remotion-out:
-  nucleus-comfyui-models:
