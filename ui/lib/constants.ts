@@ -1,19 +1,13 @@
 import {
   AudioLines,
-  BellRing,
+  Book,
   Brain,
-  Cable,
-  ChartColumn,
+  Download,
   Film,
-  Globe,
   Layers,
-  LineChart,
   Package,
   PencilRuler,
-  Plug,
-  Sparkles,
   Target,
-  Zap,
 } from 'lucide-react';
 
 export const BRAND = {
@@ -39,36 +33,16 @@ export const DASHBOARD_API_BASE =
 export const DASHBOARD_WS_URL =
   process.env.NEXT_PUBLIC_DASHBOARD_WS_URL || 'ws://localhost:3200';
 
-export const NAV_ITEMS = [
-  { label: 'Pipeline', href: '/' },
-  { label: 'Canvas', href: '/observability' },
-  { label: 'Scoring', href: '/deliverables' },
-  { label: 'Logs', href: '/logs' },
-  { label: 'Settings', href: '/settings' },
-] as const;
-
-export const BOTTOM_ACTIONS = [
-  { id: 'deploy', label: 'Deploy', icon: Zap },
-  { id: 'network', label: 'Network', icon: Globe },
-  { id: 'scale', label: 'Scale', icon: ChartColumn },
-  { id: 'monitor', label: 'Monitor', icon: BellRing },
-  { id: 'evolve', label: 'Evolve', icon: Sparkles },
-] as const;
-
 export const NODE_ICON_MAP = {
-  orchestrator: Sparkles,
-  analyst: Brain,
-  temporal: PencilRuler,
-  frontend: Target,
-  gateway: Package,
-  connector: Cable,
-  service: Film,
-  postgres: Layers,
-  redis: AudioLines,
-  elasticsearch: LineChart,
-  metabase: ChartColumn,
-  scheduler: Plug,
-  docs: Globe,
+  brand_kb: Book,
+  icp: Target,
+  video_gen: Film,
+  audio_gen: AudioLines,
+  composition: Layers,
+  scoring: Brain,
+  editor: PencilRuler,
+  delivery: Package,
+  download: Download,
 } as const;
 
 export const STATUS_MAP = {

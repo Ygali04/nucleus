@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { DASHBOARD_WS_URL } from '@/lib/constants';
-import { getDashboardSurface } from '@/lib/surface';
 import { MockEventGenerator } from '@/lib/mock-event-generator';
 import type { ActivityEntry, DashboardSocketMessage } from '@/lib/types';
 import { useDashboardStore } from '@/store/dashboard-store';
@@ -73,10 +72,7 @@ export function useWebSocket() {
     };
 
     const connect = () => {
-      const view = getDashboardSurface(window.location.pathname);
-      const wsUrl = new URL(DASHBOARD_WS_URL);
-      wsUrl.searchParams.set('view', view);
-      socket = new WebSocket(wsUrl.toString());
+      socket = new WebSocket(DASHBOARD_WS_URL);
 
       socket.onopen = () => {
         if (!isMounted) return;

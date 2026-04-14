@@ -9,14 +9,11 @@ interface CanvasStore {
   highlightedNodeId: string | null;
   viewport: { x: number; y: number; zoom: number };
   nodePositions: Record<string, XYPosition>;
-  isCreateModalOpen: boolean;
   isActivityPanelCollapsed: boolean;
   selectNode: (nodeId: string | null) => void;
   highlightNode: (nodeId: string | null) => void;
   setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
   setNodePosition: (nodeId: string, position: XYPosition) => void;
-  openCreateModal: () => void;
-  closeCreateModal: () => void;
   toggleActivityPanel: () => void;
 }
 
@@ -27,7 +24,6 @@ export const useCanvasStore = create<CanvasStore>()(
       highlightedNodeId: null,
       viewport: { x: 0, y: 0, zoom: 1 },
       nodePositions: {},
-      isCreateModalOpen: false,
       isActivityPanelCollapsed: false,
       selectNode: (selectedNodeId) => set({ selectedNodeId }),
       highlightNode: (highlightedNodeId) => set({ highlightedNodeId }),
@@ -36,8 +32,6 @@ export const useCanvasStore = create<CanvasStore>()(
         set((state) => ({
           nodePositions: { ...state.nodePositions, [nodeId]: position },
         })),
-      openCreateModal: () => set({ isCreateModalOpen: true }),
-      closeCreateModal: () => set({ isCreateModalOpen: false }),
       toggleActivityPanel: () =>
         set((state) => ({
           isActivityPanelCollapsed: !state.isActivityPanelCollapsed,
