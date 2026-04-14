@@ -135,3 +135,37 @@ class RunComfyUIWorkflowResponse(BaseModel):
     output_url: str
     cost_usd: float
     duration_s: float
+
+
+# --- build_workflow (Ruflo workflow translator endpoint) ---
+
+
+class BuildWorkflowRequest(BaseModel):
+    """Parameters for constructing a ComfyUI workflow JSON.
+
+    Ruflo calls this when it decides "I need to run subtype X" — the backend
+    returns a graph it can hand straight to ``run_comfyui_workflow``.
+    """
+
+    kind: Literal["video", "audio", "music", "edit"]
+    subtype: str  # kling|seedance|veo|runway|luma|hailuo | elevenlabs|stable_audio | svd|animatediff|ltxv | musicgen | edit_type
+    prompt: str | None = None
+    duration_s: float = 5.0
+    aspect_ratio: str = "16:9"
+    reference_image_url: str | None = None
+    # Music-specific
+    mood: str = "neutral"
+    genre: str = ""
+    energy: float = 0.5
+    # Edit-specific
+    edit_type: str | None = None
+    source_video_url: str | None = None
+    source_audio_url: str | None = None
+    target_start_s: float | None = None
+    target_end_s: float | None = None
+
+
+class BuildWorkflowResponse(BaseModel):
+    kind: Literal["video", "audio", "music", "edit"]
+    subtype: str
+    workflow: dict

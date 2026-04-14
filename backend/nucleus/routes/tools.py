@@ -14,7 +14,10 @@ from nucleus.tools.generate_audio import generate_audio
 from nucleus.tools.generate_music import generate_music
 from nucleus.tools.generate_video import generate_video
 from nucleus.tools.run_comfyui_workflow import run_comfyui_workflow
+from nucleus.providers import comfyui_workflows
 from nucleus.tools.schemas import (
+    BuildWorkflowRequest,
+    BuildWorkflowResponse,
     ClipFFmpegRequest,
     ClipFFmpegResponse,
     ComposeRemotionRequest,
@@ -83,3 +86,76 @@ async def tool_run_comfyui_workflow(
     req: RunComfyUIWorkflowRequest,
 ) -> RunComfyUIWorkflowResponse:
     return await run_comfyui_workflow(req)
+
+
+@router.post("/build_workflow", response_model=BuildWorkflowResponse)
+async def build_workflow(req: BuildWorkflowRequest) -> BuildWorkflowResponse:
+    """Return a ComfyUI workflow JSON for the given spec.
+
+    Ruflo invokes this when it decides a pipeline step is needed and wants
+    a concrete workflow to hand to ``run_comfyui_workflow``.
+    """
+    try:
+        workflow = _dispatch_workflow(req)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return BuildWorkflowResponse(kind=req.kind, subtype=req.subtype, workflow=workflow)
+
+
+def _dispatch_workflow(req: BuildWorkflowRequest) -> dict:
+    """Pick the correct translator for a ``BuildWorkflowRequest``."""
+    if req.kind == "video":
+        prompt = req.prompt or ""
+        if req.subtype == "svd":
+            return comfyui_workflows.translate_svd_image_to_video(
+                prompt=prompt,
+                reference_image_url=req.reference_image_url or "",
+                duration_s=req.duration_s,
+            )
+        if req.subtype == "animatediff":
+            return comfyui_workflows.translate_animatediff_text_to_video(
+                prompt=prompt, duration_s=req.duration_s
+            )
+        if req.subtype == "ltxv":
+            return comfyui_workflows.translate_ltx_video(
+                prompt=prompt, duration_s=req.duration_s
+            )
+        return comfyui_workflows.translate_cloud_video(
+            subtype=req.subtype,
+            prompt=prompt,
+            duration_s=req.duration_s,
+            aspect_ratio=req.aspect_ratio,
+            reference_image_url=req.reference_image_url,
+        )
+
+    if req.kind == "audio":
+        return comfyui_workflows.translate_cloud_audio(
+            subtype=req.subtype,
+            prompt=req.prompt or "",
+            duration_s=req.duration_s,
+        )
+
+    if req.kind == "music":
+        if req.subtype == "musicgen":
+            return comfyui_workflows.translate_musicgen(
+                mood=req.mood,
+                genre=req.genre,
+                duration_s=req.duration_s,
+                energy=req.energy,
+            )
+        raise ValueError(f"Unknown music subtype: {req.subtype}")
+
+    if req.kind == "edit":
+        if not req.edit_type:
+            raise ValueError("edit_type is required for kind='edit'")
+        if not req.source_video_url:
+            raise ValueError("source_video_url is required for kind='edit'")
+        return comfyui_workflows.translate_edit(
+            edit_type=req.edit_type,
+            source_video_url=req.source_video_url,
+            target_start_s=req.target_start_s,
+            target_end_s=req.target_end_s,
+            source_audio_url=req.source_audio_url,
+        )
+
+    raise ValueError(f"Unknown kind: {req.kind}")

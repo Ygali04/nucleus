@@ -303,9 +303,135 @@ def translate_whisper(audio_url: str) -> Workflow:
     }
 
 
+# ---------------------------------------------------------------------------
+# Cloud-provider workflow shims
+#
+# Kling / Seedance / Veo / Runway / Luma / Hailuo are hosted cloud video
+# models. They don't run inside ComfyUI proper, but the Nucleus ComfyUI
+# event bridge treats any workflow dict the same way: submit it, stream
+# progress, pull the final artifact. We expose thin single-node workflows
+# here so Ruflo can speak one vocabulary ("build me a workflow for X")
+# regardless of whether the backend is open-weights or cloud-API.
+#
+# A custom ComfyUI node (``NucleusCloudVideo`` / ``NucleusCloudAudio``)
+# is assumed to exist that dispatches to the corresponding Nucleus
+# provider — see ``nucleus/providers/{kling,seedance,elevenlabs,...}.py``.
+# ---------------------------------------------------------------------------
+
+_VIDEO_SUBTYPES = {"kling", "seedance", "veo", "runway", "luma", "hailuo"}
+_AUDIO_SUBTYPES = {"elevenlabs", "stable_audio"}
+_EDIT_TYPES = {
+    "hook_rewrite",
+    "cut_tightening",
+    "music_swap",
+    "pacing_change",
+    "narration_rewrite",
+    "visual_substitution",
+    "caption_emphasis",
+    "icp_reanchor",
+}
+
+
+def translate_cloud_video(
+    subtype: str,
+    prompt: str,
+    duration_s: float,
+    aspect_ratio: str = "16:9",
+    reference_image_url: str | None = None,
+) -> Workflow:
+    """Single-node workflow that dispatches to a Nucleus cloud video provider."""
+    if subtype not in _VIDEO_SUBTYPES:
+        raise ValueError(f"Unknown cloud video subtype: {subtype}")
+    return {
+        "1": {
+            "class_type": "NucleusCloudVideo",
+            "inputs": {
+                "provider": subtype,
+                "prompt": prompt,
+                "duration_s": float(duration_s),
+                "aspect_ratio": aspect_ratio,
+                "reference_image_url": reference_image_url or "",
+            },
+        },
+        "2": {
+            "class_type": "VHS_VideoCombine",
+            "inputs": {
+                "images": _ref("1", 0),
+                "frame_rate": 24,
+                "filename_prefix": f"nucleus-{subtype}",
+                "format": "video/h264-mp4",
+            },
+        },
+    }
+
+
+def translate_cloud_audio(
+    subtype: str,
+    prompt: str,
+    duration_s: float,
+) -> Workflow:
+    """Single-node workflow for cloud TTS / audio models (ElevenLabs, Stable Audio)."""
+    if subtype not in _AUDIO_SUBTYPES:
+        raise ValueError(f"Unknown cloud audio subtype: {subtype}")
+    return {
+        "1": {
+            "class_type": "NucleusCloudAudio",
+            "inputs": {
+                "provider": subtype,
+                "prompt": prompt,
+                "duration_s": float(duration_s),
+            },
+        },
+        "2": {
+            "class_type": "SaveAudio",
+            "inputs": {
+                "audio": _ref("1", 0),
+                "filename_prefix": f"nucleus-{subtype}",
+                "format": "mp3",
+            },
+        },
+    }
+
+
+def translate_edit(
+    edit_type: str,
+    source_video_url: str,
+    target_start_s: float | None = None,
+    target_end_s: float | None = None,
+    source_audio_url: str | None = None,
+) -> Workflow:
+    """Single-node workflow that dispatches to an ffmpeg-backed edit operation."""
+    if edit_type not in _EDIT_TYPES:
+        raise ValueError(f"Unknown edit_type: {edit_type}")
+    return {
+        "1": {
+            "class_type": "NucleusEdit",
+            "inputs": {
+                "edit_type": edit_type,
+                "source_video_url": source_video_url,
+                "source_audio_url": source_audio_url or "",
+                "target_start_s": -1.0 if target_start_s is None else float(target_start_s),
+                "target_end_s": -1.0 if target_end_s is None else float(target_end_s),
+            },
+        },
+        "2": {
+            "class_type": "VHS_VideoCombine",
+            "inputs": {
+                "images": _ref("1", 0),
+                "frame_rate": 24,
+                "filename_prefix": f"nucleus-edit-{edit_type}",
+                "format": "video/h264-mp4",
+            },
+        },
+    }
+
+
 __all__ = [
     "Workflow",
     "translate_animatediff_text_to_video",
+    "translate_cloud_audio",
+    "translate_cloud_video",
+    "translate_edit",
     "translate_ltx_video",
     "translate_musicgen",
     "translate_svd_image_to_video",
