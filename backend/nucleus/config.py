@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     neuropeer_timeout_seconds: float = 300.0
     neuropeer_api_key: str | None = None
 
+    # --- ComfyUI --------------------------------------------------------------
+    comfyui_base_url: str = "http://localhost:8188"
+
     @property
     def effective_region(self) -> str:
         """Use ``AWS_REGION`` when set (docker-compose convention), else ``S3_REGION``."""
@@ -137,6 +140,15 @@ def neuropeer_api_key() -> str | None:
     return settings.neuropeer_api_key
 
 
+def comfyui_base_url() -> str:
+    """Base URL for the ComfyUI execution service.
+
+    Reads live so tests that ``monkeypatch.setenv("COMFYUI_BASE_URL", ...)``
+    see the change without rebuilding the settings singleton.
+    """
+    return os.environ.get("COMFYUI_BASE_URL", settings.comfyui_base_url).rstrip("/")
+
+
 __all__ = [
     "Settings",
     "settings",
@@ -150,4 +162,5 @@ __all__ = [
     "neuropeer_base_url",
     "neuropeer_timeout_seconds",
     "neuropeer_api_key",
+    "comfyui_base_url",
 ]

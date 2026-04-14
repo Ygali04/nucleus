@@ -1,5 +1,6 @@
-"""External API clients for Nucleus (NeuroPeer, etc.)."""
+"""External API clients for Nucleus (NeuroPeer, ComfyUI, etc.)."""
 
+from nucleus.clients.comfyui import ComfyUIClient, ComfyUIError
 from nucleus.clients.neuropeer import NeuroPeerClient, NeuroPeerError
 from nucleus.clients.neuropeer_types import (
     AnalysisResult,
@@ -14,6 +15,8 @@ from nucleus.clients.neuropeer_types import (
 
 __all__ = [
     "AnalysisResult",
+    "ComfyUIClient",
+    "ComfyUIError",
     "ComparisonResult",
     "JobCreated",
     "KeyMoment",

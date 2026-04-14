@@ -61,6 +61,7 @@ services:
       REMOTION_API_URL: http://remotion:8089
       RUFLO_BRIDGE_URL: http://agent:9000
       NUCLEUS_API_URL: http://api:8000
+      COMFYUI_BASE_URL: http://comfyui:8188
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,6 +95,7 @@ services:
       AWS_SECRET_ACCESS_KEY: nucleus123
       NUCLEUS_MOCK_PROVIDERS: "true"
       REMOTION_API_URL: http://remotion:8089
+      COMFYUI_BASE_URL: http://comfyui:8188
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,7 +125,20 @@ services:
       - nucleus-remotion-out:/app/out
       - /tmp/nucleus:/tmp/nucleus
 
+  # ComfyUI execution service for open-weights diffusion / audio workflows.
+  # CPU-only dev image by default; see comfyui/README.md for the GPU swap.
+  comfyui:
+    build:
+      context: ./comfyui
+      dockerfile: Dockerfile
+    ports:
+      - "8188:8188"
+    volumes:
+      - /tmp/nucleus/comfyui-out:/tmp/nucleus/comfyui-out
+      - nucleus-comfyui-models:/app/comfyui/models
+
 volumes:
   nucleus-pgdata:
   nucleus-minio:
   nucleus-remotion-out:
+  nucleus-comfyui-models:
