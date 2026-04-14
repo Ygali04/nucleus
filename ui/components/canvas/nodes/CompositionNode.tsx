@@ -5,6 +5,12 @@ import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
 import { NodeHandles } from '@/components/canvas/TypedHandle';
 import { NodeContextMenuWrapper } from '@/components/canvas/nodes/NodeContextMenu';
+import {
+  RUFLO_ARRIVAL_CLASS,
+  RufloBadge,
+  isRufloAdded,
+  rufloBorderColor,
+} from '@/components/canvas/nodes/RufloBadge';
 
 export function CompositionNode({ id, data, selected }: NodeProps) {
   const node = data as CanvasNodeData;
@@ -18,18 +24,20 @@ export function CompositionNode({ id, data, selected }: NodeProps) {
   };
   const tone = STATUS_MAP[node.status];
   const progressPct = Math.round((d.renderProgress ?? 0) * 100);
+  const ruflo = isRufloAdded(node.data);
 
   return (
     <NodeContextMenuWrapper nodeId={id} kind="composition">
       <div
-        className="gs-card relative min-w-[216px] max-w-[216px] rounded-xl border bg-white px-3 py-3"
+        className={`gs-card relative min-w-[216px] max-w-[216px] rounded-xl border bg-white px-3 py-3 ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{
-          borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
+          borderColor: rufloBorderColor(!!selected, ruflo),
           opacity: d.bypassed ? 0.45 : 1,
           filter: d.bypassed ? 'grayscale(0.4)' : undefined,
         }}
       >
         <NodeHandles kind="composition" />
+        {ruflo ? <RufloBadge /> : null}
 
         <div className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
           <Layers className="h-3 w-3 text-[var(--color-primary)]" />

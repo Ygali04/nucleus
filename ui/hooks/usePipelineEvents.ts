@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import type {
+  GraphEdgeMeta,
+  GraphNodeMeta,
   NodeExecutionState,
   PipelineEvent,
   PipelineEventSeverity,
@@ -85,15 +87,42 @@ export function usePipelineEvents() {
 
         const eventType = (raw.event_type as string) ?? '';
         const payload = (raw.payload as Record<string, unknown> | undefined) ?? raw;
+
+        // Read campaign id lazily so campaign switches don't tear down the WS.
+        const store = useCampaignsStore.getState();
+        const campaignId =
+          (payload.campaign_id as string | undefined) ?? store.currentCampaignId;
+
+        if (eventType === 'canvas.node_added') {
+          const node = payload.node as GraphNodeMeta | undefined;
+          if (campaignId && node) {
+            store.addNode(campaignId, {
+              ...node,
+              data: { ...(node.data ?? {}), addedByRuflo: true },
+            });
+          }
+          return;
+        }
+        if (eventType === 'canvas.edge_added') {
+          const edge = payload.edge as GraphEdgeMeta | undefined;
+          if (campaignId && edge) store.addEdge(campaignId, edge);
+          return;
+        }
+        if (eventType === 'canvas.node_updated') {
+          const nodeId = payload.node_id as string | undefined;
+          const nodePatch = payload.patch as Record<string, unknown> | undefined;
+          if (campaignId && nodeId && nodePatch) {
+            store.updateNodeData(campaignId, nodeId, nodePatch);
+          }
+          return;
+        }
+
         const nodeId = payload.nucleus_node_id as string | undefined;
         if (!nodeId) return;
         const patch = comfyuiExecutionPatch(eventType, payload);
         if (!patch) return;
-        // Read campaign id lazily so campaign switches don't tear down the WS.
-        const { currentCampaignId, updateNodeExecutionState } =
-          useCampaignsStore.getState();
-        if (currentCampaignId) {
-          updateNodeExecutionState(currentCampaignId, nodeId, patch);
+        if (campaignId) {
+          store.updateNodeExecutionState(campaignId, nodeId, patch);
         }
       } catch {
         // Ignore malformed messages (e.g., keepalive pings).

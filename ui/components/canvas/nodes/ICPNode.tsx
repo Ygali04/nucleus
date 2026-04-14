@@ -5,6 +5,12 @@ import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
 import { NodeHandles } from '@/components/canvas/TypedHandle';
 import { NodeContextMenuWrapper } from '@/components/canvas/nodes/NodeContextMenu';
+import {
+  RUFLO_ARRIVAL_CLASS,
+  RufloBadge,
+  isRufloAdded,
+  rufloBorderColor,
+} from '@/components/canvas/nodes/RufloBadge';
 
 const PLATFORM_LABELS: Record<string, string> = {
   tiktok: 'TikTok',
@@ -23,6 +29,7 @@ export function ICPNode({ id, data, selected }: NodeProps) {
     bypassed?: boolean;
   };
   const tone = STATUS_MAP[node.status];
+  const ruflo = isRufloAdded(node.data);
   const platformLabel = d.platform
     ? PLATFORM_LABELS[d.platform.toLowerCase()] ?? d.platform
     : null;
@@ -30,14 +37,15 @@ export function ICPNode({ id, data, selected }: NodeProps) {
   return (
     <NodeContextMenuWrapper nodeId={id} kind="icp">
       <div
-        className="gs-card relative min-w-[208px] max-w-[208px] rounded-xl border bg-white px-3 py-3"
+        className={`gs-card relative min-w-[208px] max-w-[208px] rounded-xl border bg-white px-3 py-3 ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{
-          borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
+          borderColor: rufloBorderColor(!!selected, ruflo),
           opacity: d.bypassed ? 0.45 : 1,
           filter: d.bypassed ? 'grayscale(0.4)' : undefined,
         }}
       >
         <NodeHandles kind="icp" />
+        {ruflo ? <RufloBadge /> : null}
 
         <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
           <div className="flex items-center gap-1.5">

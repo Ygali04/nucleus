@@ -82,6 +82,7 @@ interface CampaignsState {
     },
   ) => void;
   addNode: (campaignId: string, node: GraphNodeMeta) => void;
+  addEdge: (campaignId: string, edge: GraphEdgeMeta) => void;
   deleteNode: (campaignId: string, nodeId: string) => void;
   duplicateNode: (campaignId: string, nodeId: string) => void;
   toggleBypass: (campaignId: string, nodeId: string) => void;
@@ -318,10 +319,20 @@ export const useCampaignsStore = create<CampaignsState>()(
 
       addNode: (campaignId, node) =>
         set((s) => ({
-          campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
-            nodes: [...nodes, node],
-            edges,
-          })),
+          campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) =>
+            nodes.some((n) => n.id === node.id)
+              ? { nodes, edges }
+              : { nodes: [...nodes, node], edges },
+          ),
+        })),
+
+      addEdge: (campaignId, edge) =>
+        set((s) => ({
+          campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) =>
+            edges.some((e) => e.id === edge.id)
+              ? { nodes, edges }
+              : { nodes, edges: [...edges, edge] },
+          ),
         })),
 
       deleteNode: (campaignId, nodeId) =>
