@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from nucleus.config import settings
 from nucleus.routes.briefs import router as briefs_router
+from nucleus.routes.campaigns import router as campaigns_router
 from nucleus.routes.candidates import router as candidates_router
 from nucleus.routes.tools import router as tools_router
 from nucleus.routes.ws import router as ws_router
@@ -44,6 +45,7 @@ app.add_middleware(
 )
 
 app.include_router(briefs_router)
+app.include_router(campaigns_router)
 app.include_router(candidates_router)
 app.include_router(tools_router)
 app.include_router(ws_router)

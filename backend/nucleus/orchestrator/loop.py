@@ -41,6 +41,7 @@ from nucleus.store import (
     get_candidate,
     list_iterations,
     save_candidate,
+    update_iteration_analysis_result,
     update_iteration_edit_type,
     update_iteration_score,
     update_iteration_video_url,
@@ -167,6 +168,9 @@ async def _apply_ruflo_event(
         )
         score = _score_from_event(event)
         await update_iteration_score(iteration.id, score)
+        analysis = event.get("analysis_result") or event.get("report")
+        if isinstance(analysis, dict):
+            await update_iteration_analysis_result(iteration.id, analysis)
         return idx
 
     if kind == "iteration.evaluated":
@@ -262,6 +266,35 @@ async def _mock_edit_variant(
     return f"s3://nucleus/jobs/{candidate.job_id}/{candidate.id}-v{iteration_index}.mp4"
 
 
+def _mock_analysis_result(
+    candidate: CandidateSpec,
+    iteration: Any,
+    score: ScoreBreakdown,
+) -> dict[str, Any]:
+    """Fabricate a NeuroPeer-shaped report for the mock scoring path."""
+    return {
+        "job_id": candidate.job_id,
+        "url": iteration.video_url,
+        "content_type": "video",
+        "duration_seconds": 15.0,
+        "neural_score": {
+            "total": score.neural_score,
+            "hook_score": score.hook_score,
+            "sustained_attention": score.sustained_attention,
+            "emotional_resonance": score.emotional_resonance,
+            "memory_encoding": score.memory_encoding,
+            "aesthetic_quality": score.aesthetic_quality,
+            "cognitive_accessibility": score.cognitive_accessibility,
+        },
+        "attention_curve": list(score.attention_curve),
+        "emotional_arousal_curve": [],
+        "cognitive_load_curve": [],
+        "key_moments": [],
+        "modality_breakdown": [],
+        "metrics": [],
+    }
+
+
 async def _mock_score(iteration_index: int) -> ScoreBreakdown:
     await asyncio.sleep(0)
     base = min(95.0, 45.0 + iteration_index * random.uniform(8.0, 12.0))
@@ -297,6 +330,9 @@ async def _run_candidate_loop_mock(candidate: CandidateSpec) -> None:
 
         score_result = await _mock_score(i)
         await update_iteration_score(iteration.id, score_result)
+        await update_iteration_analysis_result(
+            iteration.id, _mock_analysis_result(candidate, iteration, score_result)
+        )
         score_history.append(score_result.neural_score)
         cost_so_far += 0.08
 

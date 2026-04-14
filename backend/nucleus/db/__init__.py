@@ -11,11 +11,19 @@ reaching into the ``models`` submodule.
 from __future__ import annotations
 
 from nucleus.db.engine import AsyncSessionLocal, Base, get_engine, get_session_factory
-from nucleus.db.models import CandidateRow, EventRow, IterationRow, JobRow, ScoreRow
+from nucleus.db.models import (
+    CampaignRow,
+    CandidateRow,
+    EventRow,
+    IterationRow,
+    JobRow,
+    ScoreRow,
+)
 
 __all__ = [
     "AsyncSessionLocal",
     "Base",
+    "CampaignRow",
     "CandidateRow",
     "EventRow",
     "IterationRow",
