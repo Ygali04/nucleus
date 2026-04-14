@@ -1,7 +1,5 @@
-import type { CampaignStatus } from '@/lib/types';
-
 const STATUS_STYLES: Record<
-  CampaignStatus,
+  string,
   { label: string; className: string; dotClassName: string }
 > = {
   idle: {
@@ -11,6 +9,11 @@ const STATUS_STYLES: Record<
   },
   running: {
     label: 'Running',
+    className: 'bg-indigo-100 text-indigo-700',
+    dotClassName: 'bg-indigo-500 animate-pulse',
+  },
+  executing: {
+    label: 'Executing',
     className: 'bg-indigo-100 text-indigo-700',
     dotClassName: 'bg-indigo-500 animate-pulse',
   },
@@ -27,7 +30,7 @@ const STATUS_STYLES: Record<
 };
 
 interface CampaignStatusPillProps {
-  status: CampaignStatus;
+  status: string;
   className?: string;
 }
 
@@ -35,7 +38,7 @@ export function CampaignStatusPill({
   status,
   className = '',
 }: CampaignStatusPillProps) {
-  const style = STATUS_STYLES[status];
+  const style = STATUS_STYLES[status] ?? STATUS_STYLES.idle;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${style.className} ${className}`}

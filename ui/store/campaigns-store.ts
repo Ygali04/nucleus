@@ -72,7 +72,7 @@ interface CampaignsState {
   addNode: (campaignId: string, node: GraphNodeMeta) => void;
   deleteNode: (campaignId: string, nodeId: string) => void;
   swapNodeKind: (campaignId: string, nodeId: string, newKind: GraphNodeKind) => void;
-  retryNode: (nodeId: string) => void;
+  retryNode: (campaignId: string, nodeId: string) => void;
   openReportForIteration: (nodeId: string) => void;
 }
 
@@ -307,7 +307,7 @@ export const useCampaignsStore = create<CampaignsState>()(
           })),
         })),
 
-      retryNode: (_nodeId) => {
+      retryNode: (_campaignId, _nodeId) => {
         // Stub: WU-10 will wire to per-node re-execution once the orchestrator
         // supports targeted retries. Logged to events-store in the meantime.
       },

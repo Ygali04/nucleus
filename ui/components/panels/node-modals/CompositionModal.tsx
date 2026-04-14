@@ -1,10 +1,13 @@
 'use client';
 
 import { useCampaignsStore } from '@/store/campaigns-store';
+import type { GraphNodeMeta } from '@/lib/types';
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
 import { Field, RadioRow } from './atoms';
 import { useNodeDraft } from './useNodeDraft';
+
+type GraphNode = GraphNodeMeta;
 
 const ARCHETYPES = ['Demo', 'Marketing', 'Knowledge', 'Education'] as const;
 
@@ -35,14 +38,20 @@ export function CompositionModal({
     { ...DEFAULT, ...initial },
   );
 
-  const nodes = useCampaignsStore((s) => s.campaigns[campaignId]?.nodes);
-  const upstream = (nodes ?? [])
+  const nodes = useCampaignsStore((s) => {
+    const graph = s.campaigns.find((c) => c.id === campaignId)?.graph as
+      | { nodes?: unknown[] }
+      | undefined;
+    return (graph?.nodes as GraphNode[] | undefined) ?? [];
+  });
+  const upstream = nodes
     .filter((n) => n.kind === 'video_gen' || n.kind === 'audio_gen')
     .map((n) => ({
-      id: n.id,
-      label: n.label,
-      kind: n.kind,
-      durationS: (n.data?.durationS as number | undefined) ?? 0,
+      id: n.id as string,
+      label: n.label as string,
+      kind: n.kind as string,
+      durationS:
+        ((n.data as Record<string, unknown> | undefined)?.durationS as number | undefined) ?? 0,
     }));
 
   const totalDuration = upstream.reduce((sum, s) => sum + s.durationS, 0);

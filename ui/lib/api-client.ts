@@ -1,4 +1,5 @@
 import type { PipelineCandidate, PipelineJob } from '@/store/pipeline-store';
+import type { GraphEdgeMeta, GraphNodeMeta } from '@/lib/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -9,8 +10,8 @@ export interface SubmitBriefResponse {
 }
 
 export interface CampaignGraph {
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
+  nodes: GraphNodeMeta[];
+  edges: GraphEdgeMeta[];
 }
 
 export interface Campaign {

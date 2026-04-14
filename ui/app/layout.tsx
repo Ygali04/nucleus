@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Playfair_Display } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Toolbar } from '@/components/layout/Toolbar';
+import { NewCampaignModal } from '@/components/campaigns/NewCampaignModal';
 import './globals.css';
 
 const inter = Inter({
@@ -39,6 +40,7 @@ export default function RootLayout({
           <Header />
           <Toolbar />
           <main className="min-h-[calc(100vh-92px)]">{children}</main>
+          <NewCampaignModal />
         </div>
       </body>
     </html>

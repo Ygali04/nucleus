@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TimeAgo } from '@/components/shared/TimeAgo';
-import type { Campaign, CampaignArchetype } from '@/lib/types';
+import type { Campaign } from '@/lib/api-client';
+import type { CampaignArchetype } from '@/lib/types';
 import { CampaignStatusPill } from './CampaignStatusPill';
 
 const ARCHETYPE_ICON: Record<CampaignArchetype, LucideIcon> = {
@@ -32,7 +33,7 @@ interface CampaignCardProps {
 
 export function CampaignCard({ campaign }: CampaignCardProps) {
   const router = useRouter();
-  const Icon = ARCHETYPE_ICON[campaign.archetype];
+  const Icon = ARCHETYPE_ICON[campaign.archetype as CampaignArchetype];
 
   return (
     <button
@@ -47,10 +48,10 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
           </span>
           <div>
             <div className="text-sm font-semibold text-[var(--color-ink)]">
-              {campaign.brandName}
+              {campaign.brand_name}
             </div>
             <div className="text-xs text-[var(--color-muted)]">
-              {ARCHETYPE_LABEL[campaign.archetype]}
+              {ARCHETYPE_LABEL[campaign.archetype as CampaignArchetype]}
             </div>
           </div>
         </div>
@@ -60,18 +61,18 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
       <div className="flex items-end justify-between gap-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-faint)]">
-            Best neural score
+            Archetype
           </div>
           <div className="text-2xl font-semibold text-[var(--color-ink)]">
-            {campaign.bestScore != null ? campaign.bestScore.toFixed(1) : '—'}
+            {ARCHETYPE_LABEL[campaign.archetype as CampaignArchetype]}
           </div>
         </div>
         <div className="text-right text-xs text-[var(--color-muted)]">
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-faint)]">
             Last run
           </div>
-          {campaign.lastExecutedAt ? (
-            <TimeAgo value={campaign.lastExecutedAt} />
+          {campaign.last_executed_at ? (
+            <TimeAgo value={campaign.last_executed_at} />
           ) : (
             <span>Never</span>
           )}

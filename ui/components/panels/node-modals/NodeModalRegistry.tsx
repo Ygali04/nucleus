@@ -5,7 +5,7 @@
 // below when the BrandKB/ICP modals from WU-6 land.
 
 import { useCampaignsStore } from '@/store/campaigns-store';
-import type { GraphNodeKind } from '@/lib/types';
+import type { GraphNodeKind, GraphNodeMeta } from '@/lib/types';
 import { AudioGenModal } from './AudioGenModal';
 import { CompositionModal } from './CompositionModal';
 import { DeliveryModal } from './DeliveryModal';
@@ -33,20 +33,22 @@ export function NodeModalRegistry({
   openNodeId,
   onClose,
 }: NodeModalRegistryProps) {
-  const node = useCampaignsStore((s) =>
-    openNodeId
-      ? s.campaigns[campaignId]?.nodes.find((n) => n.id === openNodeId) ?? null
-      : null,
-  );
+  const node = useCampaignsStore((s) => {
+    if (!openNodeId) return null;
+    const graph = s.campaigns.find((c) => c.id === campaignId)?.graph as
+      | { nodes?: GraphNodeMeta[] }
+      | undefined;
+    return graph?.nodes?.find((n) => n.id === openNodeId) ?? null;
+  });
 
-  if (!node || !OWNED_KINDS.has(node.kind)) return null;
+  if (!node || !OWNED_KINDS.has(node.kind as GraphNodeKind)) return null;
 
   const common = {
     open: true,
     onClose,
     campaignId,
     nodeId: node.id,
-    initial: node.data,
+    initial: (node.data ?? {}) as Record<string, unknown>,
   };
 
   switch (node.kind) {
