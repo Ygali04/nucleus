@@ -26,37 +26,39 @@ export function ICPNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      className="gs-card relative min-w-[208px] max-w-[208px] rounded-xl border bg-white px-3 py-3"
+      className="gs-card relative min-w-[208px] max-w-[208px] overflow-hidden rounded-[10px] border bg-white"
       style={{ borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)' }}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]" />
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]" />
 
-      <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+      <div className="flex h-6 items-center justify-between bg-[var(--color-dark,#1a1a1a)]/95 px-3 text-[10px] uppercase tracking-[0.12em] text-white">
         <div className="flex items-center gap-1.5">
-          <Target className="h-3 w-3 text-[var(--color-primary)]" />
+          <Target className="h-3 w-3" />
           <span>ICP</span>
         </div>
         {platformLabel ? (
-          <span className="rounded bg-[var(--color-primary-soft,#eef2ff)] px-1.5 py-0.5 text-[10px] text-[var(--color-primary)]">
+          <span className="rounded bg-white/15 px-1.5 py-0.5 text-[10px]">
             {platformLabel}
           </span>
         ) : null}
       </div>
 
-      <div className="mb-1 text-[13px] font-semibold text-[var(--color-ink)]">
-        {d.personaName ?? node.label}
-      </div>
-
-      {d.painPoint ? (
-        <div className="mb-2 line-clamp-2 text-[11px] text-[var(--color-muted)]">
-          “{d.painPoint}”
+      <div className="px-3 py-3">
+        <div className="mb-1 text-[13px] font-semibold text-[var(--color-ink)]">
+          {d.personaName ?? node.label}
         </div>
-      ) : null}
 
-      <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted)]">
-        <StatusDot color={tone.color} pulse={node.status === 'active'} />
-        <span>{node.statusText}</span>
+        {d.painPoint ? (
+          <div className="mb-2 line-clamp-2 text-[11px] text-[var(--color-muted)]">
+            “{d.painPoint}”
+          </div>
+        ) : null}
+
+        <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted)]">
+          <StatusDot color={tone.color} pulse={node.status === 'active'} />
+          <span>{node.statusText}</span>
+        </div>
       </div>
     </div>
   );

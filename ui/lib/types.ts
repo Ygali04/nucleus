@@ -189,6 +189,7 @@ export interface CompositionNodeData {
   totalDurationS: number;
   renderProgress: number;
   outputUrl: string | null;
+  sceneThumbnails?: string[];
 }
 
 export interface ScoringNodeData {
@@ -197,6 +198,7 @@ export interface ScoringNodeData {
   topMetrics: Array<{ name: string; score: number }>;
   iterationCount: number;
   scoreDelta: number | null;
+  attentionCurve?: number[];
 }
 
 export interface EditorNodeData {
@@ -206,6 +208,8 @@ export interface EditorNodeData {
   beforeScore: number;
   afterScore: number | null;
   costUsd: number;
+  beforeVideoUrl?: string | null;
+  afterVideoUrl?: string | null;
 }
 
 export interface BrandKBNodeData {
@@ -220,11 +224,18 @@ export interface ICPNodeData {
   painPoint: string;
 }
 
+export interface DeliveryVariant {
+  thumbnailUrl?: string | null;
+  videoUrl?: string | null;
+  label?: string;
+}
+
 export interface DeliveryNodeData {
   variantCount: number;
   exportFormats: string[];
   cdnUrl: string | null;
   badgeText?: string;
+  variants?: DeliveryVariant[];
 }
 
 export interface GraphNodeMeta {
