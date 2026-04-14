@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Copy,
   MoreVertical,
@@ -25,21 +25,16 @@ const SWAP_KINDS: GraphNodeKind[] = [
   'delivery',
 ];
 
-interface NodeContextMenuProps {
-  x: number;
-  y: number;
+const HOVER_CLOSE_MS = 200;
+
+interface MenuPanelProps {
   nodeId: string;
   currentKind: GraphNodeKind;
   onClose: () => void;
 }
 
-export function NodeContextMenu({
-  x,
-  y,
-  nodeId,
-  currentKind,
-  onClose,
-}: NodeContextMenuProps) {
+/** The menu items panel. Positioning is owned by the parent wrapper. */
+function MenuPanel({ nodeId, currentKind, onClose }: MenuPanelProps) {
   const campaignId = useCampaignsStore((s) => s.currentCampaignId);
   const retryNode = useCampaignsStore((s) => s.retryNode);
   const duplicateNode = useCampaignsStore((s) => s.duplicateNode);
@@ -48,27 +43,10 @@ export function NodeContextMenu({
   const togglePin = useCampaignsStore((s) => s.togglePinNode);
   const swapNodeKind = useCampaignsStore((s) => s.swapNodeKind);
   const openNodeModal = useCampaignsStore((s) => s.openNodeModal);
-
   const [swapOpen, setSwapOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) onClose();
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
-
-  const guard = <T extends unknown[]>(fn: (...args: T) => void) =>
+  const guard =
+    <T extends unknown[]>(fn: (...args: T) => void) =>
     (...args: T) => {
       fn(...args);
       onClose();
@@ -78,10 +56,8 @@ export function NodeContextMenu({
 
   return (
     <div
-      ref={rootRef}
       role="menu"
-      className="fixed z-50 w-[180px] rounded-md border border-black/10 bg-white py-1 shadow-lg"
-      style={{ left: x, top: y }}
+      className="w-[180px] rounded-md border border-black/10 bg-white py-1 shadow-lg"
       onContextMenu={(e) => e.preventDefault()}
     >
       <MenuItem
@@ -131,8 +107,8 @@ export function NodeContextMenu({
                 key={k}
                 type="button"
                 className="block w-full px-3 py-1.5 text-left text-[12px] hover:bg-black/5"
-                onClick={guard(() =>
-                  campaignId && swapNodeKind(campaignId, nodeId, k),
+                onClick={guard(
+                  () => campaignId && swapNodeKind(campaignId, nodeId, k),
                 )}
               >
                 {k.replace(/_/g, ' ')}
@@ -154,8 +130,10 @@ export function NodeContextMenu({
 }
 
 /**
- * Wraps a node body and attaches the right-click context menu. Renders the
- * menu via a portal-free fixed element at the mouse coordinates.
+ * Wraps a node body and attaches a hover-popover actions menu pinned to a
+ * 3-dots button in the node's top-right corner. Menu opens on hover (or
+ * click) of the button or right-click on the node body, and closes ~200ms
+ * after the cursor leaves both the button and the menu panel.
  */
 export function NodeContextMenuWrapper({
   nodeId,
@@ -166,41 +144,69 @@ export function NodeContextMenuWrapper({
   kind: GraphNodeKind;
   children: ReactNode;
 }) {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const onContextMenu = useCallback((e: React.MouseEvent) => {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<number | undefined>(undefined);
+
+  const cancelClose = () => {
+    if (closeTimer.current !== undefined) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = undefined;
+    }
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => {
+      setOpen(false);
+      closeTimer.current = undefined;
+    }, HOVER_CLOSE_MS);
+  };
+
+  useEffect(() => {
+    return () => cancelClose();
+  }, []);
+
+  const onContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setPos({ x: e.clientX, y: e.clientY });
-  }, []);
-  const onDotsClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    // Anchor the menu just below the dots button.
-    setPos({ x: rect.right - 4, y: rect.bottom + 4 });
-  }, []);
-  const close = useCallback(() => setPos(null), []);
+    setOpen(true);
+  };
+
   return (
     <div className="group relative" onContextMenu={onContextMenu}>
       {children}
-      <button
-        type="button"
-        aria-label="Node actions"
-        onClick={onDotsClick}
-        onMouseDown={(e) => e.stopPropagation()}
-        className="absolute right-1.5 top-1.5 z-20 inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent bg-white/80 text-[var(--color-muted)] opacity-0 shadow-sm transition hover:border-black/10 hover:bg-white hover:text-[var(--color-ink)] group-hover:opacity-100 focus-visible:opacity-100"
+
+      {/* Anchor for the dots button + popover. Top-right of the node. */}
+      <div
+        className="absolute right-1.5 top-1.5 z-30"
+        onMouseEnter={() => {
+          cancelClose();
+          setOpen(true);
+        }}
+        onMouseLeave={scheduleClose}
       >
-        <MoreVertical className="h-3.5 w-3.5" />
-      </button>
-      {pos ? (
-        <NodeContextMenu
-          x={pos.x}
-          y={pos.y}
-          nodeId={nodeId}
-          currentKind={kind}
-          onClose={close}
-        />
-      ) : null}
+        <button
+          type="button"
+          aria-label="Node actions"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((prev) => !prev);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent bg-white/85 text-[var(--color-muted)] opacity-0 shadow-sm transition hover:border-black/10 hover:bg-white hover:text-[var(--color-ink)] group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+
+        {open ? (
+          <div className="absolute right-0 top-full mt-1">
+            <MenuPanel
+              nodeId={nodeId}
+              currentKind={kind}
+              onClose={() => setOpen(false)}
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
