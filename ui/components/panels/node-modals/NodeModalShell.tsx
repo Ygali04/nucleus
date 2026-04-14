@@ -1,8 +1,18 @@
 'use client';
 
-// TODO(WU-6): Replace this minimal shell with the full NodeModalShell from WU-6.
-// Until then, this provides the header/body/footer scaffolding consumed by the
-// prompt-driven modals in this directory.
+/**
+ * Modal shell used by every node-edit modal.
+ *
+ * **z-index convention** (observed across the app):
+ * - React Flow nodes + canvas UI: 0-30
+ * - Node option popover (3-dots menu): z-[45]
+ * - Node edit modal (this shell): z-[60]
+ * - Any dropdown / popover rendered INSIDE this modal: z-[70]
+ * - Fullscreen media lightbox: z-[100]
+ *
+ * When you add a custom dropdown (not a native <select>) inside a modal,
+ * use `className="... z-[70] ..."` so it stacks above the modal card.
+ */
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -30,7 +40,10 @@ export function NodeModalShell({
       {open ? (
         <motion.div
           key="node-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
+          // z-[60] stacks above node option popovers (z-[45]) but below
+          // modal-internal dropdowns (z-[70]) and the media lightbox
+          // (z-[100]).
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

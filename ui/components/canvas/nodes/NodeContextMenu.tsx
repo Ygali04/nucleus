@@ -175,9 +175,11 @@ export function NodeContextMenuWrapper({
     <div className="group relative" onContextMenu={onContextMenu}>
       {children}
 
-      {/* Anchor for the dots button + popover. Top-right of the node. */}
+      {/* Anchor for the dots button + popover. Top-right of the node.
+         z-[45] keeps the menu above all React Flow nodes but below the
+         Edit modal (z-[60]) and any modal-internal dropdowns (z-[70]). */}
       <div
-        className="absolute right-1.5 top-1.5 z-30"
+        className="absolute right-1.5 top-1.5 z-[45]"
         onMouseEnter={() => {
           cancelClose();
           setOpen(true);

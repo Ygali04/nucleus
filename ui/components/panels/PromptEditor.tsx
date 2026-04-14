@@ -25,7 +25,7 @@ export function PromptEditor({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[60] flex justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-[rgba(26,26,26,0.08)] px-6 py-4">

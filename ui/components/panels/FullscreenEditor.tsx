@@ -38,7 +38,7 @@ export function FullscreenEditor({
     afterScore !== null && afterScore !== undefined ? afterScore - beforeScore : null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-white">
+    <div className="fixed inset-0 z-[60] bg-white">
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between border-b border-[rgba(26,26,26,0.08)] px-6 py-4">
           <div className="text-lg font-semibold text-[var(--color-ink)]">
