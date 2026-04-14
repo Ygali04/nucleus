@@ -75,6 +75,19 @@ class ProviderRegistry:
         self._music_providers["lyria"] = LyriaProvider()
         self._music_providers["default"] = self._music_providers["lyria"]
 
+        self._register_comfyui_providers()
+
+    def _register_comfyui_providers(self) -> None:
+        """Register ComfyUI-backed providers under ``{kind}:{subtype}`` keys."""
+        from nucleus.providers.comfyui_audio import ComfyUIAudioProvider
+        from nucleus.providers.comfyui_video import ComfyUIVideoProvider
+
+        for sub in ("svd", "animatediff", "ltxv"):
+            self._video_providers[f"video:{sub}"] = ComfyUIVideoProvider(subtype=sub)
+
+        self._music_providers["audio:musicgen"] = ComfyUIAudioProvider(subtype="musicgen")
+        self._audio_providers["audio:whisper"] = ComfyUIAudioProvider(subtype="whisper")
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
