@@ -15,6 +15,7 @@ import type {
   GraphEdgeMeta,
   GraphNodeKind,
   GraphNodeMeta,
+  NodeExecutionState,
 } from '@/lib/types';
 
 /**
@@ -68,6 +69,11 @@ interface CampaignsState {
     campaignId: string,
     nodeId: string,
     partial: Record<string, unknown>,
+  ) => void;
+  updateNodeExecutionState: (
+    campaignId: string,
+    nodeId: string,
+    patch: NodeExecutionState,
   ) => void;
   addNode: (campaignId: string, node: GraphNodeMeta) => void;
   deleteNode: (campaignId: string, nodeId: string) => void;
@@ -278,6 +284,17 @@ export const useCampaignsStore = create<CampaignsState>()(
             edges,
           })),
         })),
+
+      updateNodeExecutionState: (campaignId, nodeId, patch) => {
+        // Strip undefined so callers can spread partial patches without
+        // clobbering existing fields with undefined values.
+        const cleanPatch: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(patch)) {
+          if (v !== undefined) cleanPatch[k] = v;
+        }
+        if (Object.keys(cleanPatch).length === 0) return;
+        get().updateNodeData(campaignId, nodeId, cleanPatch);
+      },
 
       addNode: (campaignId, node) =>
         set((s) => ({

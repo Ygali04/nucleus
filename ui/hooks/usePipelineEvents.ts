@@ -2,7 +2,12 @@
 
 import { useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
-import type { PipelineEvent, PipelineEventSeverity } from '@/lib/types';
+import type {
+  NodeExecutionState,
+  PipelineEvent,
+  PipelineEventSeverity,
+} from '@/lib/types';
+import { useCampaignsStore } from '@/store/campaigns-store';
 import { useEventsStore } from '@/store/events-store';
 import { usePipelineStore } from '@/store/pipeline-store';
 
@@ -36,6 +41,34 @@ function toPipelineEvent(campaignId: string, raw: Record<string, unknown>): Pipe
   };
 }
 
+function comfyuiExecutionPatch(
+  eventType: string,
+  payload: Record<string, unknown>,
+): NodeExecutionState | null {
+  switch (eventType) {
+    case 'tool.comfyui.progress':
+      return {
+        executionStatus: 'executing',
+        progressPercent: payload.percent as number | undefined,
+        progressLabel: payload.label as string | undefined,
+      };
+    case 'tool.comfyui.node_complete':
+      return {
+        executionStatus: 'done',
+        progressPercent: 100,
+        lastExecutionS: payload.duration_s as number | undefined,
+        lastCostUsd: payload.cost_usd as number | undefined,
+        cached: false,
+      };
+    case 'tool.comfyui.cached':
+      return { cached: true };
+    case 'tool.comfyui.failed':
+      return { executionStatus: 'failed' };
+    default:
+      return null;
+  }
+}
+
 export function usePipelineEvents() {
   const job = usePipelineStore((state) => state.currentJob);
   const appendEvent = useEventsStore((state) => state.appendEvent);
@@ -49,6 +82,19 @@ export function usePipelineEvents() {
       try {
         const raw = JSON.parse(ev.data) as Record<string, unknown>;
         appendEvent(toPipelineEvent(jobId, raw));
+
+        const eventType = (raw.event_type as string) ?? '';
+        const payload = (raw.payload as Record<string, unknown> | undefined) ?? raw;
+        const nodeId = payload.nucleus_node_id as string | undefined;
+        if (!nodeId) return;
+        const patch = comfyuiExecutionPatch(eventType, payload);
+        if (!patch) return;
+        // Read campaign id lazily so campaign switches don't tear down the WS.
+        const { currentCampaignId, updateNodeExecutionState } =
+          useCampaignsStore.getState();
+        if (currentCampaignId) {
+          updateNodeExecutionState(currentCampaignId, nodeId, patch);
+        }
       } catch {
         // Ignore malformed messages (e.g., keepalive pings).
       }
