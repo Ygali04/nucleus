@@ -49,7 +49,7 @@ def get_provider(
     elif subtype is None:
         name = "default"
     elif ":" in subtype:
-        # Fully-qualified key like "video:svd" — use as-is.
+        # Fully-qualified key like "video:kling" — use as-is.
         name = subtype
     else:
         name = subtype

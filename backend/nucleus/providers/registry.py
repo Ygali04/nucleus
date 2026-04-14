@@ -77,16 +77,38 @@ class ProviderRegistry:
 
         self._register_comfyui_providers()
 
+        # Refresh default pointer after ComfyUI registrations so the default
+        # video backend points at the ComfyUI-fal-API proxy when available.
+        video_backend = os.environ.get("NUCLEUS_VIDEO_PROVIDER", "kling")
+        if video_backend in self._video_providers:
+            self._video_providers["default"] = self._video_providers[video_backend]
+
     def _register_comfyui_providers(self) -> None:
-        """Register ComfyUI-backed providers under ``{kind}:{subtype}`` keys."""
+        """Register ComfyUI-backed providers.
+
+        ComfyUI-backed video subtypes are registered under both a bare key
+        (``"kling"``) and a fully-qualified ``"video:kling"`` key. Registering
+        the bare key means ``get_provider("video", "kling")`` resolves to the
+        ComfyUI-fal-API proxy, not the direct ``fal_client`` provider.
+        """
         from nucleus.providers.comfyui_audio import ComfyUIAudioProvider
         from nucleus.providers.comfyui_video import ComfyUIVideoProvider
 
-        for sub in ("svd", "animatediff", "ltxv"):
-            self._video_providers[f"video:{sub}"] = ComfyUIVideoProvider(subtype=sub)
+        video_subtypes = ("kling", "seedance", "veo", "runway", "luma", "hailuo")
+        for sub in video_subtypes:
+            provider = ComfyUIVideoProvider(subtype=sub)
+            self._video_providers[f"video:{sub}"] = provider
+            # Bare key: ComfyUI path wins over the direct fal_client provider.
+            self._video_providers[sub] = provider
 
-        self._music_providers["audio:musicgen"] = ComfyUIAudioProvider(subtype="musicgen")
-        self._audio_providers["audio:whisper"] = ComfyUIAudioProvider(subtype="whisper")
+        eleven = ComfyUIAudioProvider(subtype="elevenlabs")
+        self._audio_providers["audio:elevenlabs"] = eleven
+        # Note: bare "elevenlabs" is already owned by the direct provider;
+        # callers wanting the ComfyUI proxy must ask for "audio:elevenlabs".
+
+        stable = ComfyUIAudioProvider(subtype="stable_audio")
+        self._music_providers["audio:stable_audio"] = stable
+        self._music_providers["stable_audio"] = stable
 
     # ------------------------------------------------------------------
     # Public API

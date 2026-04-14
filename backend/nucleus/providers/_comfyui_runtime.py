@@ -13,12 +13,15 @@ from nucleus.storage import upload_bytes
 logger = logging.getLogger(__name__)
 
 
-def cost_per_second_from_env(env_var: str) -> float:
-    """Read a per-second cost float from *env_var*, defaulting to 0."""
+def cost_per_second_from_env(env_var: str, default: float = 0.0) -> float:
+    """Read a per-second cost float from *env_var*, falling back to *default*."""
+    raw = os.environ.get(env_var)
+    if raw is None:
+        return default
     try:
-        return float(os.environ.get(env_var, "0.0"))
+        return float(raw)
     except ValueError:
-        return 0.0
+        return default
 
 
 def extract_output_filename(history: dict, prompt_id: str) -> tuple[str, str]:
