@@ -62,8 +62,10 @@ export function buildCanvasEdges(graphEdges: GraphEdgeMeta[] = []): Edge[] {
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    type: edge.kind,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    type: edge.kind === 'dataflow' ? 'typed' : edge.kind,
     animated: edge.animated,
-    data: { label: edge.label },
+    data: { label: edge.label, ...(edge.data ?? {}) },
   }));
 }

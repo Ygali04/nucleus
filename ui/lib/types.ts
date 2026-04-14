@@ -250,6 +250,9 @@ export interface GraphEdgeMeta {
   kind: 'dataflow' | 'dependency';
   animated?: boolean;
   label?: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+  data?: Record<string, unknown>;
 }
 
 export interface NodeMetrics {

@@ -35,6 +35,7 @@ import { ScoringNode } from '@/components/canvas/nodes/ScoringNode';
 import { VideoGenNode } from '@/components/canvas/nodes/VideoGenNode';
 import { DataFlowEdge } from '@/components/canvas/edges/DataFlowEdge';
 import { DependencyEdge } from '@/components/canvas/edges/DependencyEdge';
+import { TypedEdge } from '@/components/canvas/edges/TypedEdge';
 
 const nodeTypes: NodeTypes = {
   video_gen: VideoGenNode,
@@ -49,6 +50,7 @@ const nodeTypes: NodeTypes = {
 };
 
 const edgeTypes: EdgeTypes = {
+  typed: TypedEdge,
   dataflow: DataFlowEdge,
   dependency: DependencyEdge,
 };
@@ -151,7 +153,7 @@ function FlowCanvas({
             zoom: nextViewport.zoom,
           });
         }}
-        defaultEdgeOptions={{ selectable: false }}
+        defaultEdgeOptions={{ selectable: false, type: 'typed' }}
       >
         <Background gap={20} size={1} color="rgba(26,26,26,0.05)" />
         <Controls
