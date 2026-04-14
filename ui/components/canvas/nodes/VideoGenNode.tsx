@@ -5,6 +5,12 @@ import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
 import { NodeHandles } from '@/components/canvas/TypedHandle';
 import { NodeContextMenuWrapper } from '@/components/canvas/nodes/NodeContextMenu';
+import {
+  RUFLO_ARRIVAL_CLASS,
+  RufloBadge,
+  isRufloAdded,
+  rufloBorderColor,
+} from '@/components/canvas/nodes/RufloBadge';
 
 export function VideoGenNode({ id, data, selected }: NodeProps) {
   const node = data as CanvasNodeData;
@@ -18,18 +24,20 @@ export function VideoGenNode({ id, data, selected }: NodeProps) {
     bypassed?: boolean;
   };
   const tone = STATUS_MAP[node.status];
+  const ruflo = isRufloAdded(node.data);
 
   return (
     <NodeContextMenuWrapper nodeId={id} kind="video_gen">
       <div
-        className="gs-card relative min-w-[224px] max-w-[224px] rounded-xl border bg-white px-3 py-3 transition"
+        className={`gs-card relative min-w-[224px] max-w-[224px] rounded-xl border bg-white px-3 py-3 transition ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{
-          borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
+          borderColor: rufloBorderColor(!!selected, ruflo),
           opacity: d.bypassed ? 0.45 : 1,
           filter: d.bypassed ? 'grayscale(0.4)' : undefined,
         }}
       >
         <NodeHandles kind="video_gen" />
+        {ruflo ? <RufloBadge /> : null}
 
         <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
           <div className="flex items-center gap-1.5">

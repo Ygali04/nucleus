@@ -22,10 +22,12 @@ export function NewCampaignModal() {
   const createCampaign = useCampaignsStore((state) => state.createCampaign);
   const [selected, setSelected] = useState<CampaignArchetype | null>(null);
   const [brandName, setBrandName] = useState('');
+  const [rufloAutopilot, setRufloAutopilot] = useState(true);
 
   const resetForm = () => {
     setSelected(null);
     setBrandName('');
+    setRufloAutopilot(true);
   };
 
   const handleClose = () => {
@@ -56,6 +58,7 @@ export function NewCampaignModal() {
       archetype: selected,
       brand_name: brandName.trim(),
       graph: { nodes: seededNodes, edges: seededEdges },
+      brief: { ruflo_autopilot: rufloAutopilot },
     });
     handleClose();
     router.push(`/canvas?campaign=${campaign.id}`);
@@ -117,6 +120,16 @@ export function NewCampaignModal() {
                 value={brandName}
                 onChange={(event) => setBrandName(event.target.value)}
               />
+            </label>
+
+            <label className="mt-4 flex items-center gap-2 text-xs text-[var(--color-muted)]">
+              <input
+                type="checkbox"
+                checked={rufloAutopilot}
+                onChange={(event) => setRufloAutopilot(event.target.checked)}
+                className="h-4 w-4 accent-[var(--color-primary)]"
+              />
+              <span>Let Ruflo auto-build the pipeline</span>
             </label>
 
             <div className="mt-6 flex justify-end gap-2">

@@ -4,6 +4,12 @@ import type { CanvasNodeData } from '@/lib/graph-layout';
 import { scoreColor } from '@/lib/score-color';
 import { NodeHandles } from '@/components/canvas/TypedHandle';
 import { NodeContextMenuWrapper } from '@/components/canvas/nodes/NodeContextMenu';
+import {
+  RUFLO_ARRIVAL_CLASS,
+  RufloBadge,
+  isRufloAdded,
+  rufloBorderColor,
+} from '@/components/canvas/nodes/RufloBadge';
 
 export function ScoringNode({ id, data, selected }: NodeProps) {
   const node = data as CanvasNodeData;
@@ -18,6 +24,7 @@ export function ScoringNode({ id, data, selected }: NodeProps) {
   const score = d.neuralScore ?? 0;
   const threshold = d.threshold ?? 72;
   const color = scoreColor(score, threshold);
+  const ruflo = isRufloAdded(node.data);
 
   const radius = 32;
   const circumference = 2 * Math.PI * radius;
@@ -26,14 +33,15 @@ export function ScoringNode({ id, data, selected }: NodeProps) {
   return (
     <NodeContextMenuWrapper nodeId={id} kind="scoring">
       <div
-        className="gs-card relative min-w-[232px] max-w-[232px] rounded-xl border bg-white px-3 py-3"
+        className={`gs-card relative min-w-[232px] max-w-[232px] rounded-xl border bg-white px-3 py-3 ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{
-          borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
+          borderColor: rufloBorderColor(!!selected, ruflo),
           opacity: d.bypassed ? 0.45 : 1,
           filter: d.bypassed ? 'grayscale(0.4)' : undefined,
         }}
       >
         <NodeHandles kind="scoring" />
+        {ruflo ? <RufloBadge /> : null}
 
         <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
           <div className="flex items-center gap-1.5">

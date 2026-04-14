@@ -72,6 +72,13 @@ function FlowSync({
   const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
   const viewport = useCanvasStore((state) => state.viewport);
 
+  // Refit the view when node count changes so Ruflo-added nodes stay visible.
+  const nodeCount = nodes.length;
+  useEffect(() => {
+    if (nodeCount === 0) return;
+    reactFlow.fitView({ padding: 0.2, duration: 400 });
+  }, [nodeCount, reactFlow]);
+
   useEffect(() => {
     if (!highlightedNodeId) return;
     const target = nodes.find((node) => node.id === highlightedNodeId);

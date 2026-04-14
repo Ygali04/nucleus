@@ -4,14 +4,25 @@ import { Upload } from 'lucide-react';
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
 import { Field, RadioRow, Slider, Textarea } from './atoms';
+import { ProviderCardGrid, type ProviderCard } from './ProviderCardGrid';
 import { useNodeDraft } from './useNodeDraft';
 
-const PROVIDERS = ['Kling', 'Seedance', 'MagiHuman'] as const;
+const PROVIDERS = [
+  { id: 'kling', label: 'Kling 2.1 Master', costPerS: 0.084 },
+  { id: 'seedance', label: 'Seedance 1 Pro', costPerS: 0.07 },
+  { id: 'veo', label: 'Veo 3', costPerS: 0.3 },
+  { id: 'runway', label: 'Runway Gen-4', costPerS: 0.25 },
+  { id: 'luma', label: 'Luma Dream Machine', costPerS: 0.1 },
+  { id: 'hailuo', label: 'MiniMax Hailuo', costPerS: 0.04 },
+] as const satisfies readonly ProviderCard[];
+
+type ProviderId = (typeof PROVIDERS)[number]['id'];
+
 const ASPECTS = ['16:9', '9:16', '1:1'] as const;
 
 interface VideoGenDraft extends Record<string, unknown> {
   prompt: string;
-  provider: (typeof PROVIDERS)[number];
+  provider: ProviderId;
   durationS: number;
   aspect: (typeof ASPECTS)[number];
   referenceImageUrl: string | null;
@@ -27,7 +38,7 @@ export interface VideoGenModalProps {
 
 const DEFAULT: VideoGenDraft = {
   prompt: '',
-  provider: 'Kling',
+  provider: 'kling',
   durationS: 6,
   aspect: '16:9',
   referenceImageUrl: null,
@@ -50,6 +61,12 @@ export function VideoGenModal({
     save();
     onClose();
   };
+
+  const selectedProvider = PROVIDERS.find((p) => p.id === draft.provider);
+  const estTotalCost =
+    selectedProvider && selectedProvider.costPerS !== undefined
+      ? draft.durationS * selectedProvider.costPerS
+      : null;
 
   return (
     <NodeModalShell
@@ -77,12 +94,18 @@ export function VideoGenModal({
           />
         </Field>
 
-        <Field label="Provider">
-          <RadioRow
-            name="provider"
+        <Field
+          label="Provider"
+          hint={
+            estTotalCost !== null
+              ? `Est. $${estTotalCost.toFixed(2)} for ${draft.durationS}s`
+              : undefined
+          }
+        >
+          <ProviderCardGrid
+            providers={PROVIDERS}
             value={draft.provider}
-            options={PROVIDERS.map((p) => ({ value: p, label: p }))}
-            onChange={(value) => patch({ provider: value })}
+            onChange={(id) => patch({ provider: id as ProviderId })}
           />
         </Field>
 

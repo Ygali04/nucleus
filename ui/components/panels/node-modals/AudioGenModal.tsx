@@ -3,14 +3,25 @@
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
 import { Field, RadioRow, Slider, TextInput, Textarea } from './atoms';
+import { ProviderCardGrid, type ProviderCard } from './ProviderCardGrid';
 import { useNodeDraft } from './useNodeDraft';
 
 const MODES = ['voice', 'music'] as const;
 const LANGUAGES = ['en-US', 'en-GB', 'es-ES', 'fr-FR', 'de-DE', 'ja-JP'];
 const MOODS = ['uplifting', 'calm', 'intense', 'playful', 'nostalgic'];
 
+const VOICE_PROVIDERS: readonly ProviderCard[] = [
+  { id: 'elevenlabs', label: 'ElevenLabs' },
+];
+
+const MUSIC_PROVIDERS: readonly ProviderCard[] = [
+  { id: 'stable_audio', label: 'Stable Audio 2', costPerS: 0.02 },
+  { id: 'suno', label: 'Suno (coming soon)', disabled: true },
+];
+
 interface AudioGenDraft extends Record<string, unknown> {
   mode: (typeof MODES)[number];
+  provider: string;
   // voice
   script: string;
   voiceName: string;
@@ -25,6 +36,7 @@ interface AudioGenDraft extends Record<string, unknown> {
 
 const DEFAULT: AudioGenDraft = {
   mode: 'voice',
+  provider: 'elevenlabs',
   script: '',
   voiceName: 'Aria',
   language: 'en-US',
@@ -87,7 +99,23 @@ export function AudioGenModal({
               value: m,
               label: m === 'voice' ? 'Voice' : 'Music',
             }))}
-            onChange={(value) => patch({ mode: value })}
+            onChange={(value) =>
+              patch({
+                mode: value,
+                provider:
+                  value === 'voice'
+                    ? VOICE_PROVIDERS[0].id
+                    : MUSIC_PROVIDERS[0].id,
+              })
+            }
+          />
+        </Field>
+
+        <Field label="Provider">
+          <ProviderCardGrid
+            providers={draft.mode === 'voice' ? VOICE_PROVIDERS : MUSIC_PROVIDERS}
+            value={draft.provider}
+            onChange={(id) => patch({ provider: id })}
           />
         </Field>
 
