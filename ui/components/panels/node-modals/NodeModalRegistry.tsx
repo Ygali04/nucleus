@@ -28,35 +28,41 @@ const OWNED_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>([
  * node. Mounted once globally in the root layout — no props required.
  */
 export function NodeModalRegistry() {
+  // Keep each selector primitive-valued so Zustand's referential equality
+  // check prevents infinite re-renders. Composition happens outside the
+  // store (derived state is cheap).
   const openNodeId = useCampaignsStore((s) => s.openNodeModalId);
-  const campaignId = useCampaignsStore((s) => s.currentCampaignId);
+  const currentCampaignId = useCampaignsStore((s) => s.currentCampaignId);
+  const campaigns = useCampaignsStore((s) => s.campaigns);
   const closeNodeModal = useCampaignsStore((s) => s.closeNodeModal);
 
-  const node = useCampaignsStore((s) => {
-    if (!openNodeId) return null;
-    // Search across all campaigns so the modal opens even if the user hasn't
-    // explicitly set currentCampaignId yet (e.g. navigating directly to /canvas).
-    for (const c of s.campaigns) {
-      const graph = c.graph as { nodes?: GraphNodeMeta[] } | undefined;
-      const found = graph?.nodes?.find((n) => n.id === openNodeId);
-      if (found) return { campaignId: c.id, node: found };
+  if (!openNodeId) return null;
+
+  let foundNode: GraphNodeMeta | null = null;
+  let foundCampaignId = '';
+  for (const c of campaigns) {
+    const graph = c.graph as { nodes?: GraphNodeMeta[] } | undefined;
+    const match = graph?.nodes?.find((n) => n.id === openNodeId);
+    if (match) {
+      foundNode = match;
+      foundCampaignId = c.id;
+      break;
     }
-    return null;
-  });
+  }
 
-  if (!node || !OWNED_KINDS.has(node.node.kind as GraphNodeKind)) return null;
+  if (!foundNode || !OWNED_KINDS.has(foundNode.kind as GraphNodeKind)) return null;
 
-  const resolvedCampaignId = node.campaignId || campaignId || '';
+  const resolvedCampaignId = foundCampaignId || currentCampaignId || '';
 
   const common = {
     open: true,
     onClose: closeNodeModal,
     campaignId: resolvedCampaignId,
-    nodeId: node.node.id,
-    initial: (node.node.data ?? {}) as Record<string, unknown>,
+    nodeId: foundNode.id,
+    initial: (foundNode.data ?? {}) as Record<string, unknown>,
   };
 
-  switch (node.node.kind) {
+  switch (foundNode.kind) {
     case 'video_gen':
       return <VideoGenModal {...common} />;
     case 'audio_gen':
@@ -75,7 +81,7 @@ export function NodeModalRegistry() {
           open
           onClose={closeNodeModal}
           campaignId={resolvedCampaignId}
-          nodeId={node.node.id}
+          nodeId={foundNode.id}
         />
       );
     case 'icp':
@@ -84,7 +90,7 @@ export function NodeModalRegistry() {
           open
           onClose={closeNodeModal}
           campaignId={resolvedCampaignId}
-          nodeId={node.node.id}
+          nodeId={foundNode.id}
         />
       );
     default:
