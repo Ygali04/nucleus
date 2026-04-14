@@ -1,5 +1,5 @@
 import type { GraphEdgeMeta, GraphNodeMeta } from '@/lib/types';
-import { primaryOutputType } from '@/lib/node-data-types';
+import { NODE_IO_MAP, primaryOutputType } from '@/lib/node-data-types';
 
 export type CampaignArchetype = 'demo' | 'marketing' | 'knowledge' | 'education';
 
@@ -58,16 +58,54 @@ function dataflow(
   return { id, source, target, kind: 'dataflow', label };
 }
 
-/** Colors each edge by its source node's primary output data type. */
+/**
+ * Sets sourceHandle/targetHandle/data.dataType on each seeded edge so it
+ * connects to the color-matched socket on both endpoints.
+ *
+ * Source: the source node's primary output handle (e.g. video_gen → out-video-0).
+ * Target: the matching-typed input handle on the target (e.g. composition
+ *   has inputs [video, audio, brand-kb], so a video edge lands on in-video-0).
+ *
+ * If the target node has multiple inputs of the same type, edges round-robin
+ * through them in declaration order so 2 video sources fan in to in-video-0
+ * and in-video-1 distinctly.
+ */
 function annotateEdges(
   nodes: GraphNodeMeta[],
   edges: GraphEdgeMeta[],
 ): GraphEdgeMeta[] {
   const kindById = new Map(nodes.map((n) => [n.id, n.kind]));
+  // Track per-target how many edges of each type have already landed.
+  const usedSlots = new Map<string, number>();
+
   return edges.map((e) => {
-    const kind = kindById.get(e.source);
-    if (!kind) return e;
-    return { ...e, data: { ...(e.data ?? {}), dataType: primaryOutputType(kind) } };
+    const sourceKind = kindById.get(e.source);
+    const targetKind = kindById.get(e.target);
+    if (!sourceKind || !targetKind) return e;
+
+    const sourceType = primaryOutputType(sourceKind);
+    const sourceHandle = `out-${sourceType}-0`;
+
+    const targetInputs = NODE_IO_MAP[targetKind]?.inputs ?? [];
+    // Find every index in targetInputs that matches sourceType.
+    const matchingIndices = targetInputs
+      .map((t, i) => (t === sourceType ? i : -1))
+      .filter((i) => i >= 0);
+    let targetHandle: string | undefined;
+    if (matchingIndices.length > 0) {
+      const usedKey = `${e.target}:${sourceType}`;
+      const used = usedSlots.get(usedKey) ?? 0;
+      const idx = matchingIndices[Math.min(used, matchingIndices.length - 1)];
+      targetHandle = `in-${sourceType}-${idx}`;
+      usedSlots.set(usedKey, used + 1);
+    }
+
+    return {
+      ...e,
+      sourceHandle,
+      targetHandle,
+      data: { ...(e.data ?? {}), dataType: sourceType },
+    };
   });
 }
 

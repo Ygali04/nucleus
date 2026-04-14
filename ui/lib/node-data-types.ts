@@ -40,8 +40,14 @@ export const NODE_IO_MAP: Record<
   icp: { inputs: [], outputs: ['icp'] },
   video_gen: { inputs: ['brand-kb', 'icp'], outputs: ['video'] },
   audio_gen: { inputs: ['brand-kb', 'icp'], outputs: ['audio'] },
-  composition: { inputs: ['video', 'audio', 'brand-kb'], outputs: ['composition'] },
-  scoring: { inputs: ['composition', 'video'], outputs: ['report'] },
+  // composition produces a rendered mp4 — its output is `video` so it can
+  // attach cleanly to scoring / editor / delivery video sockets without a
+  // dedicated "composition"-typed socket.
+  composition: { inputs: ['video', 'audio', 'brand-kb'], outputs: ['video'] },
+  // scoring takes a video and emits a report (NeuroPeer analysis).
+  scoring: { inputs: ['video'], outputs: ['report'] },
+  // editor takes the source video AND the scoring report (action items),
+  // and emits an edited video.
   editor: { inputs: ['video', 'report'], outputs: ['video'] },
   delivery: { inputs: ['video', 'report'], outputs: ['delivery'] },
   group: { inputs: [], outputs: [] },

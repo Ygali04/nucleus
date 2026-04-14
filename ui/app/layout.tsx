@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { Toolbar } from '@/components/layout/Toolbar';
 import { NewCampaignModal } from '@/components/campaigns/NewCampaignModal';
 import { MediaLightboxModal } from '@/components/canvas/node-previews/MediaLightboxModal';
+import { NodeModalRegistry } from '@/components/panels/node-modals/NodeModalRegistry';
 import './globals.css';
 
 const inter = Inter({
@@ -43,6 +44,7 @@ export default function RootLayout({
           <main className="min-h-[calc(100vh-92px)]">{children}</main>
           <NewCampaignModal />
           <MediaLightboxModal />
+          <NodeModalRegistry />
         </div>
       </body>
     </html>

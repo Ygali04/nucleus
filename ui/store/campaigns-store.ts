@@ -95,6 +95,35 @@ interface CampaignsState {
 const nowIso = () => new Date().toISOString();
 const tempId = () => `local-${Math.random().toString(36).slice(2, 10)}`;
 
+/**
+ * Debounced fire-and-forget backend sync for graph mutations. The store's
+ * persist middleware already saves to localStorage on every mutation, so the
+ * user's data is never lost locally. This adds a best-effort backend write
+ * so a fresh browser/device sees the same state.
+ */
+const PERSIST_DEBOUNCE_MS = 600;
+const persistTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function schedulePersist(getCampaign: () => Campaign | undefined, campaignId: string) {
+  const existing = persistTimers.get(campaignId);
+  if (existing) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    persistTimers.delete(campaignId);
+    const c = getCampaign();
+    if (!c) return;
+    apiClient
+      .updateCampaign(campaignId, {
+        graph: c.graph as never,
+        brief: c.brief ?? null,
+      })
+      .catch(() => {
+        // Swallow — localStorage already has the latest. The next successful
+        // sync will reconcile.
+      });
+  }, PERSIST_DEBOUNCE_MS);
+  persistTimers.set(campaignId, timer);
+}
+
 const isTransportFailure = (err: unknown): boolean => {
   if (err instanceof TypeError) return true;
   if (err instanceof Error && /failed: 0/.test(err.message)) return true;
@@ -283,7 +312,7 @@ export const useCampaignsStore = create<CampaignsState>()(
       openNodeModal: (openNodeModalId) => set({ openNodeModalId }),
       closeNodeModal: () => set({ openNodeModalId: null }),
 
-      updateNodeData: (campaignId, nodeId, partial) =>
+      updateNodeData: (campaignId, nodeId, partial) => {
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
             nodes: nodes.map((n) =>
@@ -293,7 +322,12 @@ export const useCampaignsStore = create<CampaignsState>()(
             ),
             edges,
           })),
-        })),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
 
       updateNodeExecutionState: (campaignId, nodeId, patch) => {
         // Strip undefined so we never overwrite prior state with undefined.
@@ -317,25 +351,35 @@ export const useCampaignsStore = create<CampaignsState>()(
         }));
       },
 
-      addNode: (campaignId, node) =>
+      addNode: (campaignId, node) => {
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) =>
             nodes.some((n) => n.id === node.id)
               ? { nodes, edges }
               : { nodes: [...nodes, node], edges },
           ),
-        })),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
 
-      addEdge: (campaignId, edge) =>
+      addEdge: (campaignId, edge) => {
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) =>
             edges.some((e) => e.id === edge.id)
               ? { nodes, edges }
               : { nodes, edges: [...edges, edge] },
           ),
-        })),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
 
-      deleteNode: (campaignId, nodeId) =>
+      deleteNode: (campaignId, nodeId) => {
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
             nodes: nodes.filter((n) => n.id !== nodeId),
@@ -343,9 +387,14 @@ export const useCampaignsStore = create<CampaignsState>()(
           })),
           openNodeModalId:
             s.openNodeModalId === nodeId ? null : s.openNodeModalId,
-        })),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
 
-      duplicateNode: (campaignId, nodeId) =>
+      duplicateNode: (campaignId, nodeId) => {
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => {
             const src = nodes.find((n) => n.id === nodeId);
@@ -359,9 +408,14 @@ export const useCampaignsStore = create<CampaignsState>()(
             };
             return { nodes: [...nodes, clone], edges };
           }),
-        })),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
 
-      toggleBypass: (campaignId, nodeId) =>
+      toggleBypass: (campaignId, nodeId) => {
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
             nodes: nodes.map((n) =>
@@ -378,9 +432,14 @@ export const useCampaignsStore = create<CampaignsState>()(
             ),
             edges,
           })),
-        })),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
 
-      togglePinNode: (campaignId, nodeId) =>
+      togglePinNode: (campaignId, nodeId) => {
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
             nodes: nodes.map((n) =>
@@ -396,9 +455,14 @@ export const useCampaignsStore = create<CampaignsState>()(
             ),
             edges,
           })),
-        })),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
 
-      swapNodeKind: (campaignId, nodeId, newKind) =>
+      swapNodeKind: (campaignId, nodeId, newKind) => {
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
             nodes: nodes.map((n) =>
@@ -406,7 +470,12 @@ export const useCampaignsStore = create<CampaignsState>()(
             ),
             edges,
           })),
-        })),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
 
       retryNode: (_campaignId, _nodeId) => {
         // Stub: WU-10 will wire to per-node re-execution once the orchestrator

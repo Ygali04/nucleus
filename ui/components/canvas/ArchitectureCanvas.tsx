@@ -156,10 +156,31 @@ function FlowCanvas({
     setNodes(
       (current) => applyNodeChanges(changes, current) as Node<CanvasNodeData>[],
     );
-    // Persist drag positions back to the canvas-store so they survive re-mount.
+    // Persist drag-completed positions to (a) canvas-store for instant
+    // rehydration on remount and (b) the campaign graph itself so the
+    // backend persists across browsers/devices.
     for (const change of changes) {
-      if (change.type === 'position' && change.position && change.dragging === false) {
+      if (
+        change.type === 'position' &&
+        change.position &&
+        change.dragging === false
+      ) {
         setNodePosition(change.id, change.position);
+        if (campaignId && campaign?.graph) {
+          const graph = campaign.graph as unknown as {
+            nodes?: GraphNodeMeta[];
+            edges?: GraphEdgeMeta[];
+          };
+          const nextNodes = (graph.nodes ?? []).map((n) =>
+            n.id === change.id
+              ? { ...n, x: change.position!.x, y: change.position!.y }
+              : n,
+          );
+          storeUpdateCampaign(
+            campaignId,
+            { graph: { ...graph, nodes: nextNodes } } as Record<string, unknown>,
+          );
+        }
       }
     }
   };
