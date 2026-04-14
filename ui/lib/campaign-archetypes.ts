@@ -1,4 +1,5 @@
 import type { GraphEdgeMeta, GraphNodeMeta } from '@/lib/types';
+import { primaryOutputType } from '@/lib/node-data-types';
 
 export type CampaignArchetype = 'demo' | 'marketing' | 'knowledge' | 'education';
 
@@ -55,6 +56,19 @@ function dataflow(
   label?: string,
 ): GraphEdgeMeta {
   return { id, source, target, kind: 'dataflow', label };
+}
+
+/** Colors each edge by its source node's primary output data type. */
+function annotateEdges(
+  nodes: GraphNodeMeta[],
+  edges: GraphEdgeMeta[],
+): GraphEdgeMeta[] {
+  const kindById = new Map(nodes.map((n) => [n.id, n.kind]));
+  return edges.map((e) => {
+    const kind = kindById.get(e.source);
+    if (!kind) return e;
+    return { ...e, data: { ...(e.data ?? {}), dataType: primaryOutputType(kind) } };
+  });
 }
 
 /** Demo: linear product walkthrough. */
@@ -223,7 +237,7 @@ export const ARCHETYPE_CONFIGS: Record<CampaignArchetype, ArchetypeConfig> = {
     iconName: 'Sparkles',
     useCase: 'Narrated feature tour for launch pages and sales decks.',
     defaultNodes: DEMO_NODES,
-    defaultEdges: DEMO_EDGES,
+    defaultEdges: annotateEdges(DEMO_NODES, DEMO_EDGES),
   },
   marketing: {
     id: 'marketing',
@@ -232,7 +246,7 @@ export const ARCHETYPE_CONFIGS: Record<CampaignArchetype, ArchetypeConfig> = {
     iconName: 'Megaphone',
     useCase: 'Branching hero spot with voiceover for paid social.',
     defaultNodes: MARKETING_NODES,
-    defaultEdges: MARKETING_EDGES,
+    defaultEdges: annotateEdges(MARKETING_NODES, MARKETING_EDGES),
   },
   knowledge: {
     id: 'knowledge',
@@ -241,7 +255,7 @@ export const ARCHETYPE_CONFIGS: Record<CampaignArchetype, ArchetypeConfig> = {
     iconName: 'BookOpen',
     useCase: 'Three-pass refinement for deep explainer content.',
     defaultNodes: KNOWLEDGE_NODES,
-    defaultEdges: KNOWLEDGE_EDGES,
+    defaultEdges: annotateEdges(KNOWLEDGE_NODES, KNOWLEDGE_EDGES),
   },
   education: {
     id: 'education',
@@ -250,6 +264,6 @@ export const ARCHETYPE_CONFIGS: Record<CampaignArchetype, ArchetypeConfig> = {
     iconName: 'GraduationCap',
     useCase: 'Intro and lesson segments with a single scoring pass.',
     defaultNodes: EDUCATION_NODES,
-    defaultEdges: EDUCATION_EDGES,
+    defaultEdges: annotateEdges(EDUCATION_NODES, EDUCATION_EDGES),
   },
 };

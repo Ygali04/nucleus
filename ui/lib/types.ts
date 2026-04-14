@@ -161,8 +161,30 @@ export type GraphNodeKind =
   | 'delivery'
   | 'group';
 
+export type NodeExecutionStatus =
+  | 'idle'
+  | 'queued'
+  | 'executing'
+  | 'running'
+  | 'done'
+  | 'failed';
+
+/**
+ * Execution-state fields stored on a node's `data` bag to drive visual
+ * indicators (progress bar, pulsing ring, timing badge, cached tint).
+ * Populated live by the pipeline-events hook.
+ */
+export interface NodeExecutionState {
+  executionStatus?: NodeExecutionStatus;
+  progressPercent?: number;
+  progressLabel?: string;
+  lastExecutionS?: number;
+  lastCostUsd?: number;
+  cached?: boolean;
+}
+
 /** Pipeline-specific metadata attached to the 5 Nucleus node kinds. */
-export interface VideoGenNodeData {
+export interface VideoGenNodeData extends NodeExecutionState {
   provider: string;
   prompt: string;
   thumbnailUrl: string | null;
@@ -172,7 +194,7 @@ export interface VideoGenNodeData {
   iterationCount?: number;
 }
 
-export interface AudioGenNodeData {
+export interface AudioGenNodeData extends NodeExecutionState {
   kind: 'voice' | 'music';
   voiceName?: string;
   language?: string;
@@ -183,59 +205,48 @@ export interface AudioGenNodeData {
   durationS: number;
 }
 
-export interface CompositionNodeData {
+export interface CompositionNodeData extends NodeExecutionState {
   templateId: string;
   sceneCount: number;
   totalDurationS: number;
   renderProgress: number;
   outputUrl: string | null;
-  sceneThumbnails?: string[];
 }
 
-export interface ScoringNodeData {
+export interface ScoringNodeData extends NodeExecutionState {
   neuralScore: number | null;
   threshold: number;
   topMetrics: Array<{ name: string; score: number }>;
   iterationCount: number;
   scoreDelta: number | null;
-  attentionCurve?: number[];
 }
 
-export interface EditorNodeData {
+export interface EditorNodeData extends NodeExecutionState {
   editType: string;
   targetStartS: number;
   targetEndS: number;
   beforeScore: number;
   afterScore: number | null;
   costUsd: number;
-  beforeVideoUrl?: string | null;
-  afterVideoUrl?: string | null;
 }
 
-export interface BrandKBNodeData {
+export interface BrandKBNodeData extends NodeExecutionState {
   brandName: string;
   voiceTone: string[];
   docCount: number;
 }
 
-export interface ICPNodeData {
+export interface ICPNodeData extends NodeExecutionState {
   personaName: string;
   platform: 'tiktok' | 'instagram' | 'youtube' | string;
   painPoint: string;
 }
 
-export interface DeliveryVariant {
-  thumbnailUrl?: string | null;
-  videoUrl?: string | null;
-  label?: string;
-}
-
-export interface DeliveryNodeData {
+export interface DeliveryNodeData extends NodeExecutionState {
   variantCount: number;
   exportFormats: string[];
   cdnUrl: string | null;
   badgeText?: string;
-  variants?: DeliveryVariant[];
 }
 
 export interface GraphNodeMeta {
@@ -261,6 +272,9 @@ export interface GraphEdgeMeta {
   kind: 'dataflow' | 'dependency';
   animated?: boolean;
   label?: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+  data?: Record<string, unknown>;
 }
 
 export interface NodeMetrics {

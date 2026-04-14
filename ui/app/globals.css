@@ -100,6 +100,21 @@ a {
   background: transparent;
 }
 
+@keyframes nucleus-executing-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.35);
+    opacity: 0.85;
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(79, 70, 229, 0.35);
+    opacity: 1;
+  }
+}
+
+.nucleus-executing-pulse {
+  animation: nucleus-executing-pulse 1.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

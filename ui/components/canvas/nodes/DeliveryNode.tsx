@@ -1,68 +1,52 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { type NodeProps } from '@xyflow/react';
 import { Package } from 'lucide-react';
 import { STATUS_MAP } from '@/lib/constants';
 import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
-import { InlineImageStripPreview } from '@/components/canvas/node-previews/InlineImageStripPreview';
+import { NodeHandles } from '@/components/canvas/TypedHandle';
+import { NodeContextMenuWrapper } from '@/components/canvas/nodes/NodeContextMenu';
 
-interface DeliveryVariant {
-  thumbnailUrl?: string | null;
-  videoUrl?: string | null;
-  label?: string;
-}
-
-export function DeliveryNode({ data, selected }: NodeProps) {
+export function DeliveryNode({ id, data, selected }: NodeProps) {
   const node = data as CanvasNodeData;
   const d = (node.data ?? {}) as {
     variantCount?: number;
     exportFormats?: string[];
     cdnUrl?: string | null;
     badgeText?: string;
-    variants?: DeliveryVariant[];
+    bypassed?: boolean;
   };
   const tone = STATUS_MAP[node.status];
   const formats = (d.exportFormats ?? []).filter(Boolean);
   const shipText = d.cdnUrl ?? 'Ready to ship';
   const badge = d.badgeText ?? (node.status === 'active' ? 'Shipping' : 'Ready');
-  const variants = (d.variants ?? []).filter((v) => v.thumbnailUrl || v.videoUrl);
 
   return (
-    <div
-      className="gs-card relative min-w-[224px] max-w-[224px] overflow-hidden rounded-[10px] border bg-white"
-      style={{ borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)' }}
-    >
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]" />
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]" />
+    <NodeContextMenuWrapper nodeId={id} kind="delivery">
+      <div
+        className="gs-card relative min-w-[216px] max-w-[216px] rounded-xl border bg-white px-3 py-3"
+        style={{
+          borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
+          opacity: d.bypassed ? 0.45 : 1,
+          filter: d.bypassed ? 'grayscale(0.4)' : undefined,
+        }}
+      >
+        <NodeHandles kind="delivery" />
 
-      <div className="flex h-6 items-center justify-between bg-[var(--color-dark,#1a1a1a)]/95 px-3 text-[10px] uppercase tracking-[0.12em] text-white">
-        <div className="flex items-center gap-1.5">
-          <Package className="h-3 w-3" />
-          <span>Delivery</span>
-        </div>
-        <span
-          className="rounded px-1.5 py-0.5 text-[10px] font-medium"
-          style={{
-            backgroundColor: 'var(--color-primary-soft,#eef2ff)',
-            color: 'var(--color-primary)',
-          }}
-        >
-          {badge}
-        </span>
-      </div>
-
-      <div className="px-3 py-3">
-        {variants.length > 0 ? (
-          <div className="mb-2">
-            <InlineImageStripPreview
-              images={variants.map((v) => ({
-                src: v.thumbnailUrl ?? v.videoUrl ?? '',
-                fullSrc: v.videoUrl ?? v.thumbnailUrl ?? undefined,
-                kind: v.videoUrl ? ('video' as const) : ('image' as const),
-              }))}
-              max={5}
-            />
+        <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+          <div className="flex items-center gap-1.5">
+            <Package className="h-3 w-3 text-[var(--color-primary)]" />
+            <span>Delivery</span>
           </div>
-        ) : null}
+          <span
+            className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+            style={{
+              backgroundColor: 'var(--color-primary-soft,#eef2ff)',
+              color: 'var(--color-primary)',
+            }}
+          >
+            {badge}
+          </span>
+        </div>
 
         <div className="mb-1 text-[13px] font-semibold text-[var(--color-ink)]">
           {d.variantCount !== undefined ? `${d.variantCount} variants` : node.label}
@@ -90,6 +74,6 @@ export function DeliveryNode({ data, selected }: NodeProps) {
           <span>{node.statusText}</span>
         </div>
       </div>
-    </div>
+    </NodeContextMenuWrapper>
   );
 }

@@ -1,12 +1,12 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Film, Play } from 'lucide-react';
+import { type NodeProps } from '@xyflow/react';
+import { Film } from 'lucide-react';
 import { STATUS_MAP } from '@/lib/constants';
 import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
-import { InlineVideoPreview } from '@/components/canvas/node-previews/InlineVideoPreview';
-import { useCanvasStore } from '@/store/canvas-store';
+import { NodeHandles } from '@/components/canvas/TypedHandle';
+import { NodeContextMenuWrapper } from '@/components/canvas/nodes/NodeContextMenu';
 
-export function VideoGenNode({ data, selected }: NodeProps) {
+export function VideoGenNode({ id, data, selected }: NodeProps) {
   const node = data as CanvasNodeData;
   const d = (node.data ?? {}) as {
     provider?: string;
@@ -15,54 +15,40 @@ export function VideoGenNode({ data, selected }: NodeProps) {
     costUsd?: number;
     durationS?: number;
     iterationCount?: number;
+    bypassed?: boolean;
   };
   const tone = STATUS_MAP[node.status];
-  const openMediaPreview = useCanvasStore((s) => s.openMediaPreview);
 
   return (
-    <div
-      className="gs-card relative min-w-[224px] max-w-[224px] overflow-hidden rounded-[10px] border bg-white transition"
-      style={{
-        borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
-      }}
-    >
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]" />
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]" />
+    <NodeContextMenuWrapper nodeId={id} kind="video_gen">
+      <div
+        className="gs-card relative min-w-[224px] max-w-[224px] rounded-xl border bg-white px-3 py-3 transition"
+        style={{
+          borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
+          opacity: d.bypassed ? 0.45 : 1,
+          filter: d.bypassed ? 'grayscale(0.4)' : undefined,
+        }}
+      >
+        <NodeHandles kind="video_gen" />
 
-      <div className="flex h-6 items-center justify-between bg-[var(--color-dark,#1a1a1a)]/95 px-3 text-[10px] uppercase tracking-[0.12em] text-white">
-        <div className="flex items-center gap-1.5">
-          <Film className="h-3 w-3" />
-          <span>{d.provider ?? 'Video'}</span>
+        <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+          <div className="flex items-center gap-1.5">
+            <Film className="h-3 w-3 text-[var(--color-primary)]" />
+            <span>{d.provider ?? 'Video'}</span>
+          </div>
+          {d.costUsd !== undefined ? (
+            <span className="font-mono text-[10px] text-[var(--color-muted)]">
+              ${d.costUsd.toFixed(3)}
+            </span>
+          ) : null}
         </div>
-        {d.costUsd !== undefined ? (
-          <span className="font-mono text-[10px] opacity-80">${d.costUsd.toFixed(3)}</span>
-        ) : null}
-      </div>
 
-      <div className="px-3 py-3">
-        <div className="mb-2">
-          {d.videoUrl ? (
-            <InlineVideoPreview src={d.videoUrl} durationS={d.durationS} />
-          ) : d.thumbnailUrl ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (d.thumbnailUrl) openMediaPreview(d.thumbnailUrl, 'image');
-              }}
-              className="relative block aspect-video w-full overflow-hidden rounded-md shadow-inner"
-              aria-label="Open thumbnail"
-            >
-              <img src={d.thumbnailUrl} alt={node.label} className="h-full w-full object-cover" />
-              <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90">
-                  <Play className="h-4 w-4 translate-x-[1px] text-[var(--color-ink)]" />
-                </span>
-              </span>
-            </button>
+        <div className="mb-2 aspect-video w-full overflow-hidden rounded-md bg-[var(--color-muted-bg,#f5f6f8)]">
+          {d.thumbnailUrl ? (
+            <img src={d.thumbnailUrl} alt={node.label} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex aspect-video w-full items-center justify-center rounded-md bg-[var(--color-muted-bg,#f5f6f8)] text-[10px] text-[var(--color-muted)] shadow-inner">
-              No preview yet
+            <div className="flex h-full w-full items-center justify-center text-[10px] text-[var(--color-muted)]">
+              {d.videoUrl ? 'Ready' : 'No preview'}
             </div>
           )}
         </div>
@@ -79,6 +65,6 @@ export function VideoGenNode({ data, selected }: NodeProps) {
           {d.durationS ? <span className="font-mono text-[10px]">{d.durationS.toFixed(1)}s</span> : null}
         </div>
       </div>
-    </div>
+    </NodeContextMenuWrapper>
   );
 }

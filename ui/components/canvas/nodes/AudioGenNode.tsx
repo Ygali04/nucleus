@@ -1,61 +1,59 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { type NodeProps } from '@xyflow/react';
 import { AudioLines, Music } from 'lucide-react';
 import { STATUS_MAP } from '@/lib/constants';
 import type { CanvasNodeData } from '@/lib/graph-layout';
 import { StatusDot } from '@/components/shared/StatusDot';
-import { InlineAudioPreview } from '@/components/canvas/node-previews/InlineAudioPreview';
+import { NodeHandles } from '@/components/canvas/TypedHandle';
+import { NodeContextMenuWrapper } from '@/components/canvas/nodes/NodeContextMenu';
 
-const STATIC_BARS = Array.from({ length: 14 }, (_, i) =>
-  8 + Math.floor(14 * Math.abs(Math.sin((i + 1) * 1.3))),
-);
-
-export function AudioGenNode({ data, selected }: NodeProps) {
+export function AudioGenNode({ id, data, selected }: NodeProps) {
   const node = data as CanvasNodeData;
   const d = (node.data ?? {}) as {
     kind?: 'voice' | 'music';
     voiceName?: string;
     language?: string;
     mood?: string;
-    audioUrl?: string | null;
     costUsd?: number;
     durationS?: number;
+    bypassed?: boolean;
   };
   const tone = STATUS_MAP[node.status];
   const Icon = d.kind === 'music' ? Music : AudioLines;
 
+  const bars = Array.from({ length: 14 }, (_, i) =>
+    8 + Math.floor(14 * Math.abs(Math.sin((i + 1) * 1.3))),
+  );
+
   return (
-    <div
-      className="gs-card relative min-w-[208px] max-w-[208px] overflow-hidden rounded-[10px] border bg-white"
-      style={{ borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)' }}
-    >
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]" />
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[var(--color-primary)]" />
+    <NodeContextMenuWrapper nodeId={id} kind="audio_gen">
+      <div
+        className="gs-card relative min-w-[208px] max-w-[208px] rounded-xl border bg-white px-3 py-3"
+        style={{
+          borderColor: selected ? 'var(--color-primary)' : 'rgba(26,26,26,0.1)',
+          opacity: d.bypassed ? 0.45 : 1,
+          filter: d.bypassed ? 'grayscale(0.4)' : undefined,
+        }}
+      >
+        <NodeHandles kind="audio_gen" />
 
-      <div className="flex h-6 items-center justify-between bg-[var(--color-dark,#1a1a1a)]/95 px-3 text-[10px] uppercase tracking-[0.12em] text-white">
-        <div className="flex items-center gap-1.5">
-          <Icon className="h-3 w-3" />
-          <span>{d.kind === 'music' ? 'Music' : 'Voice'}</span>
+        <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">
+          <div className="flex items-center gap-1.5">
+            <Icon className="h-3 w-3 text-[var(--color-primary)]" />
+            <span>{d.kind === 'music' ? 'Music' : 'Voice'}</span>
+          </div>
+          {d.costUsd !== undefined ? (
+            <span className="font-mono text-[10px]">${d.costUsd.toFixed(3)}</span>
+          ) : null}
         </div>
-        {d.costUsd !== undefined ? (
-          <span className="font-mono text-[10px] opacity-80">${d.costUsd.toFixed(3)}</span>
-        ) : null}
-      </div>
 
-      <div className="px-3 py-3">
-        <div className="mb-2">
-          {d.audioUrl ? (
-            <InlineAudioPreview src={d.audioUrl} durationS={d.durationS} />
-          ) : (
-            <div className="flex h-8 items-end gap-0.5 rounded-md bg-[var(--color-muted-bg,#f5f6f8)] px-2 py-1 shadow-inner">
-              {STATIC_BARS.map((h, i) => (
-                <div
-                  key={i}
-                  className="w-[3px] rounded-sm bg-[var(--color-primary)]"
-                  style={{ height: `${h}px`, opacity: 0.7 }}
-                />
-              ))}
-            </div>
-          )}
+        <div className="mb-2 flex h-8 items-end gap-0.5 rounded bg-[var(--color-muted-bg,#f5f6f8)] px-2 py-1">
+          {bars.map((h, i) => (
+            <div
+              key={i}
+              className="w-[3px] rounded-sm bg-[var(--color-primary)]"
+              style={{ height: `${h}px`, opacity: 0.7 }}
+            />
+          ))}
         </div>
 
         <div className="mb-1 text-[13px] font-semibold text-[var(--color-ink)]">{node.label}</div>
@@ -75,6 +73,6 @@ export function AudioGenNode({ data, selected }: NodeProps) {
           {d.durationS ? <span className="font-mono text-[10px]">{d.durationS.toFixed(1)}s</span> : null}
         </div>
       </div>
-    </div>
+    </NodeContextMenuWrapper>
   );
 }

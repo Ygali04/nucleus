@@ -69,8 +69,23 @@ interface CampaignsState {
     nodeId: string,
     partial: Record<string, unknown>,
   ) => void;
+  updateNodeExecutionState: (
+    campaignId: string,
+    nodeId: string,
+    patch: {
+      status?: string;
+      progressPercent?: number;
+      progressLabel?: string;
+      lastExecutionS?: number;
+      lastCostUsd?: number;
+      cached?: boolean;
+    },
+  ) => void;
   addNode: (campaignId: string, node: GraphNodeMeta) => void;
   deleteNode: (campaignId: string, nodeId: string) => void;
+  duplicateNode: (campaignId: string, nodeId: string) => void;
+  toggleBypass: (campaignId: string, nodeId: string) => void;
+  togglePinNode: (campaignId: string, nodeId: string) => void;
   swapNodeKind: (campaignId: string, nodeId: string, newKind: GraphNodeKind) => void;
   retryNode: (campaignId: string, nodeId: string) => void;
   openReportForIteration: (nodeId: string) => void;
@@ -279,6 +294,28 @@ export const useCampaignsStore = create<CampaignsState>()(
           })),
         })),
 
+      updateNodeExecutionState: (campaignId, nodeId, patch) => {
+        // Strip undefined so we never overwrite prior state with undefined.
+        const clean = Object.fromEntries(
+          Object.entries(patch).filter(([, v]) => v !== undefined),
+        );
+        if (Object.keys(clean).length === 0) return;
+        set((s) => ({
+          campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
+            nodes: nodes.map((n) =>
+              n.id === nodeId
+                ? {
+                    ...n,
+                    ...(clean.status !== undefined ? { status: clean.status as GraphNodeMeta['status'] } : {}),
+                    data: { ...(n.data ?? {}), ...clean },
+                  }
+                : n,
+            ),
+            edges,
+          })),
+        }));
+      },
+
       addNode: (campaignId, node) =>
         set((s) => ({
           campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
@@ -295,6 +332,59 @@ export const useCampaignsStore = create<CampaignsState>()(
           })),
           openNodeModalId:
             s.openNodeModalId === nodeId ? null : s.openNodeModalId,
+        })),
+
+      duplicateNode: (campaignId, nodeId) =>
+        set((s) => ({
+          campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => {
+            const src = nodes.find((n) => n.id === nodeId);
+            if (!src) return { nodes, edges };
+            const clone: GraphNodeMeta = {
+              ...src,
+              id: `${src.id}-copy-${Math.random().toString(36).slice(2, 6)}`,
+              x: (src.x ?? 0) + 40,
+              y: (src.y ?? 0) + 40,
+              data: src.data ? { ...src.data } : undefined,
+            };
+            return { nodes: [...nodes, clone], edges };
+          }),
+        })),
+
+      toggleBypass: (campaignId, nodeId) =>
+        set((s) => ({
+          campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
+            nodes: nodes.map((n) =>
+              n.id === nodeId
+                ? {
+                    ...n,
+                    data: {
+                      ...(n.data ?? {}),
+                      bypassed: !((n.data ?? {}) as { bypassed?: boolean })
+                        .bypassed,
+                    },
+                  }
+                : n,
+            ),
+            edges,
+          })),
+        })),
+
+      togglePinNode: (campaignId, nodeId) =>
+        set((s) => ({
+          campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
+            nodes: nodes.map((n) =>
+              n.id === nodeId
+                ? {
+                    ...n,
+                    data: {
+                      ...(n.data ?? {}),
+                      pinned: !((n.data ?? {}) as { pinned?: boolean }).pinned,
+                    },
+                  }
+                : n,
+            ),
+            edges,
+          })),
         })),
 
       swapNodeKind: (campaignId, nodeId, newKind) =>
