@@ -63,6 +63,30 @@ def get_provider(
     raise ValueError(f"Unknown provider kind: {kind!r}")
 
 
+def verify_provider_registry() -> dict[str, list[str]]:
+    """Instantiate the registry at app startup to catch import-time errors.
+
+    Called from ``nucleus.app`` lifespan so a typo in a provider class name
+    or a broken import surfaces immediately instead of crashing the first
+    request that happens to reach that provider.
+
+    Returns a summary dict of ``{"video": [...], "audio": [...], "music": [...]}``
+    listing the registered keys — useful for debugging / health checks.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    registry = get_registry()
+    summary = {
+        "video": sorted(registry._video_providers.keys()),
+        "audio": sorted(registry._audio_providers.keys()),
+        "music": sorted(registry._music_providers.keys()),
+    }
+    logger.info("Provider registry verified: %s", summary)
+    return summary
+
+
 __all__ = [
     "AudioProvider",
     "AudioResult",
@@ -80,4 +104,5 @@ __all__ = [
     "VideoProvider",
     "get_provider",
     "get_registry",
+    "verify_provider_registry",
 ]

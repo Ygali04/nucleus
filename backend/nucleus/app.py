@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from nucleus.config import settings
+from nucleus.providers import verify_provider_registry
 from nucleus.routes.briefs import router as briefs_router
 from nucleus.routes.campaigns import router as campaigns_router
 from nucleus.routes.candidates import router as candidates_router
@@ -31,6 +32,12 @@ async def lifespan(_app: FastAPI):
             await ensure_bucket()
         except Exception as exc:  # pragma: no cover - best-effort startup
             logger.warning("ensure_bucket() failed at startup: %s", exc)
+
+    try:
+        verify_provider_registry()
+    except Exception as exc:  # pragma: no cover - best-effort startup
+        logger.exception("verify_provider_registry() failed: %s", exc)
+
     yield
 
 

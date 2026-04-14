@@ -29,16 +29,38 @@ Create `ugc-peer/.env` (or export in your shell) if you want to exercise
 real providers:
 
 ```bash
-export FAL_KEY=...                 # Kling video provider
-export ELEVENLABS_API_KEY=...      # TTS
+export FAL_KEY=...                 # Kling, Seedance, Veo, Runway, Luma, Hailuo (via ComfyUI fal-API node)
+export ELEVENLABS_API_KEY=...      # TTS (only used in direct-SDK mode)
 export GOOGLE_CLOUD_PROJECT=...    # Lyria music (Vertex AI)
-export ATLAS_CLOUD_API_KEY=...     # Seedance video
-export WAVESPEED_API_KEY=...       # MagiHuman avatar video
+export ATLAS_CLOUD_API_KEY=...     # Seedance direct SDK (opt-in)
+export WAVESPEED_API_KEY=...       # MagiHuman avatar video (direct SDK only)
 export HF_TOKEN=...                # NeuroPeer only
 ```
 
 All API keys are optional. If a key is missing for a requested provider,
 that call fails loudly; the rest of the pipeline is unaffected.
+
+### Provider routing
+
+By default every video / audio / music request routes through a running
+ComfyUI instance that calls fal.ai via the `ComfyUI-fal-API` custom-node
+pack.  That means:
+
+- `get_provider("video", "kling")` → `ComfyUIVideoProvider(subtype="kling")`
+- `get_provider("video", "seedance")` → `ComfyUIVideoProvider(subtype="seedance")`
+- Same for `veo`, `runway`, `luma`, `hailuo`
+- `get_provider("audio", "elevenlabs")` → ComfyUI
+- `get_provider("music", "stable_audio")` → ComfyUI
+
+To fall back to the old direct-SDK path (e.g. bypass ComfyUI entirely and
+call `fal_client` from the Python backend), set:
+
+```bash
+export NUCLEUS_USE_DIRECT_SDK=true
+```
+
+`MagiHuman` stays on direct-SDK regardless — there is no ComfyUI-fal-API
+node for it as of 2026-04-12.
 
 ## 3. Bring up the Nucleus stack
 
@@ -93,6 +115,32 @@ Streaming events from ws://localhost:8000/ws/job/<hex> ...
 
 The script exits with status 0 on success and 1 if the job failed,
 timed out, or the backend was unreachable.
+
+### ComfyUI smoke test
+
+End-to-end run against a real ComfyUI instance and the real fal.ai Kling
+endpoint.
+
+```bash
+# In one terminal, start the stack:
+docker compose up -d postgres redis minio comfyui api worker
+
+# In another:
+export FAL_KEY=your_fal_key
+python backend/scripts/smoke_test.py --real-comfyui
+```
+
+Expected output: `tool.comfyui.*` events stream, ~60s later:
+
+```
+✓ job COMPLETE, final_score=73.1, variants=1, cost=$0.42
+```
+
+To inspect the Kling workflow JSON without hitting the network:
+
+```bash
+python backend/scripts/smoke_test.py --build-only
+```
 
 ## 6. Open the UI
 

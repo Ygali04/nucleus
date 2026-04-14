@@ -196,6 +196,89 @@ class TestKlingProvider:
 
 
 # ------------------------------------------------------------------
+# Default routing: kling / seedance / elevenlabs → ComfyUI
+# ------------------------------------------------------------------
+
+
+class TestDefaultRoutingToComfyUI:
+    """Without NUCLEUS_USE_DIRECT_SDK, bare provider names route through ComfyUI."""
+
+    def _clear_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Override the module-level ``NUCLEUS_MOCK_PROVIDERS=true`` so the
+        # registry uses real (ComfyUI-backed) providers for these tests.
+        monkeypatch.setenv("NUCLEUS_MOCK_PROVIDERS", "false")
+        monkeypatch.delenv("NUCLEUS_USE_DIRECT_SDK", raising=False)
+        monkeypatch.setenv("FAL_KEY", "test-key")
+
+    def test_get_provider_kling_returns_comfyui_by_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._clear_env(monkeypatch)
+        from nucleus.providers import get_provider
+        from nucleus.providers.comfyui_video import ComfyUIVideoProvider
+
+        provider = get_provider("video", "kling")
+        assert isinstance(provider, ComfyUIVideoProvider)
+        assert provider.subtype == "kling"
+
+    def test_get_provider_seedance_returns_comfyui_by_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._clear_env(monkeypatch)
+        from nucleus.providers import get_provider
+        from nucleus.providers.comfyui_video import ComfyUIVideoProvider
+
+        provider = get_provider("video", "seedance")
+        assert isinstance(provider, ComfyUIVideoProvider)
+        assert provider.subtype == "seedance"
+
+    def test_direct_sdk_opt_in_returns_kling_direct(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._clear_env(monkeypatch)
+        monkeypatch.setenv("NUCLEUS_USE_DIRECT_SDK", "true")
+        from nucleus.providers import get_provider
+        from nucleus.providers.kling import KlingVideoProvider
+
+        provider = get_provider("video", "kling")
+        assert isinstance(provider, KlingVideoProvider)
+
+    def test_video_kling_fully_qualified_always_comfyui(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Even with direct-SDK mode on, ``video:kling`` stays on ComfyUI."""
+        self._clear_env(monkeypatch)
+        monkeypatch.setenv("NUCLEUS_USE_DIRECT_SDK", "true")
+        from nucleus.providers import get_provider
+        from nucleus.providers.comfyui_video import ComfyUIVideoProvider
+
+        provider = get_provider("video", "video:kling")
+        assert isinstance(provider, ComfyUIVideoProvider)
+
+    def test_elevenlabs_routes_to_comfyui_by_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._clear_env(monkeypatch)
+        from nucleus.providers import get_provider
+        from nucleus.providers.comfyui_audio import ComfyUIAudioProvider
+
+        provider = get_provider("audio", "elevenlabs")
+        assert isinstance(provider, ComfyUIAudioProvider)
+        assert provider.subtype == "elevenlabs"
+
+    def test_stable_audio_routes_to_comfyui_by_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._clear_env(monkeypatch)
+        from nucleus.providers import get_provider
+        from nucleus.providers.comfyui_audio import ComfyUIAudioProvider
+
+        provider = get_provider("music", "stable_audio")
+        assert isinstance(provider, ComfyUIAudioProvider)
+        assert provider.subtype == "stable_audio"
+
+
+# ------------------------------------------------------------------
 # Result type validation
 # ------------------------------------------------------------------
 

@@ -52,6 +52,23 @@ def _parse_args() -> argparse.Namespace:
         help="Use real providers (requires API keys). Default is mock mode.",
     )
     parser.add_argument(
+        "--real-comfyui",
+        action="store_true",
+        help=(
+            "End-to-end real ComfyUI + fal.ai run: health-check ComfyUI, "
+            "submit a tiny Kling brief, stream tool.comfyui.* events. "
+            "Requires FAL_KEY and a running ComfyUI (COMFYUI_BASE_URL)."
+        ),
+    )
+    parser.add_argument(
+        "--build-only",
+        action="store_true",
+        help=(
+            "Build the Kling ComfyUI workflow locally and print the JSON, "
+            "then exit.  No network calls."
+        ),
+    )
+    parser.add_argument(
         "--api",
         default=os.environ.get("NUCLEUS_API_URL", "http://localhost:8000"),
         help="Nucleus API base URL (default: http://localhost:8000).",
@@ -142,19 +159,70 @@ def _summarise(
     return best_score, len(candidates), total_cost
 
 
-async def _run(args: argparse.Namespace) -> int:
-    if args.real:
-        os.environ.pop("NUCLEUS_MOCK_PROVIDERS", None)
-        print("Using REAL providers (make sure keys are configured).")
-    else:
-        os.environ["NUCLEUS_MOCK_PROVIDERS"] = "true"
-        print("Using MOCK providers (NUCLEUS_MOCK_PROVIDERS=true).")
+def _run_build_only() -> int:
+    """Build the Kling workflow locally and print it as JSON.  No network."""
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from nucleus.providers.comfyui_workflows import translate_fal_video
 
+    workflow = translate_fal_video(
+        subtype="kling",
+        prompt="A tiny fluffy cat riding a skateboard at sunset",
+        duration_s=5.0,
+        aspect_ratio="16:9",
+    )
+    print(json.dumps(workflow, indent=2))
+    return 0
+
+
+async def _run_real_comfyui(args: argparse.Namespace) -> int:
+    """Real-fal, real-ComfyUI smoke test for the Kling path."""
+    if not os.environ.get("FAL_KEY"):
+        print(
+            "! FAL_KEY environment variable is required for --real-comfyui. "
+            "Export it and retry.",
+            file=sys.stderr,
+        )
+        return 1
+
+    comfyui_url = os.environ.get("COMFYUI_BASE_URL", "http://localhost:8188").rstrip("/")
+    print(f"Health-checking ComfyUI at {comfyui_url} ...")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{comfyui_url}/system_stats")
+            resp.raise_for_status()
+    except (httpx.HTTPError, OSError) as exc:
+        print(
+            f"! ComfyUI not reachable at {comfyui_url}/system_stats: {exc}. "
+            "Start it via `docker compose up -d comfyui`.",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"  ComfyUI OK: {resp.json()}")
+
+    # Force real providers for this path.
+    os.environ.pop("NUCLEUS_MOCK_PROVIDERS", None)
+    os.environ.pop("NUCLEUS_USE_DIRECT_SDK", None)
+
+    brief = {
+        **DEFAULT_BRIEF,
+        "variants_per_cell": 1,
+        "max_iterations": 1,
+        "video_provider": "kling",
+        "video_duration_s": 5.0,
+    }
+    args.real = True
+    return await _run_pipeline(args, brief)
+
+
+async def _run_pipeline(
+    args: argparse.Namespace, brief: dict[str, Any] | None = None
+) -> int:
+    brief = brief or DEFAULT_BRIEF
     api_url: str = args.api.rstrip("/")
     print(f"API base: {api_url}")
 
     try:
-        brief_resp = await _submit_brief(api_url, DEFAULT_BRIEF)
+        brief_resp = await _submit_brief(api_url, brief)
     except httpx.ConnectError as exc:
         print(
             f"! could not reach {api_url} ({exc}). "
@@ -171,17 +239,12 @@ async def _run(args: argparse.Namespace) -> int:
     if raw_ws_url.startswith(("ws://", "wss://")):
         ws_url = raw_ws_url
     else:
-        # Relative path — bolt onto the API base, flipping http[s] → ws[s].
         base = api_url.rstrip("/")
         ws_base = "ws" + base[len("http"):]
         ws_url = ws_base + (raw_ws_url if raw_ws_url.startswith("/") else f"/{raw_ws_url}")
 
     print(f"Brief submitted — job_id={job_id}, candidates={candidate_count}")
 
-    # Eager-mode paths (NUCLEUS_EAGER_TASKS=1) run the loop synchronously before
-    # we can open the WebSocket, so events have already fired and nothing will
-    # be streamed. Check candidate status first; if everything is already
-    # COMPLETE, skip streaming.
     candidates = await _list_job_candidates(api_url, job_id)
     already_done = bool(candidates) and all(
         (c.get("state") or "").upper() == "COMPLETE" for c in candidates
@@ -212,17 +275,40 @@ async def _run(args: argparse.Namespace) -> int:
         print("(eager-completed before WS opened — using candidate status)")
 
     best_score, variants, total_cost = _summarise(candidates, events)
-
     score_str = f"{best_score:.1f}" if best_score is not None else "n/a"
+
+    # Print download URL when we can find one.
+    download_url = None
+    for c in candidates:
+        download_url = c.get("video_url") or c.get("download_url") or download_url
+
     print(
         f"\n\u2713 job COMPLETE, final_score={score_str}, "
         f"variants={variants}, cost=${total_cost:.3f}"
     )
+    if download_url:
+        print(f"  download: {download_url}")
     return 0
+
+
+async def _run(args: argparse.Namespace) -> int:
+    if args.real_comfyui:
+        return await _run_real_comfyui(args)
+
+    if args.real:
+        os.environ.pop("NUCLEUS_MOCK_PROVIDERS", None)
+        print("Using REAL providers (make sure keys are configured).")
+    else:
+        os.environ["NUCLEUS_MOCK_PROVIDERS"] = "true"
+        print("Using MOCK providers (NUCLEUS_MOCK_PROVIDERS=true).")
+
+    return await _run_pipeline(args)
 
 
 def main() -> None:
     args = _parse_args()
+    if args.build_only:
+        sys.exit(_run_build_only())
     try:
         exit_code = asyncio.run(_run(args))
     except KeyboardInterrupt:

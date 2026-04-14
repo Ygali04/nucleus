@@ -17,22 +17,42 @@ from nucleus.providers._comfyui_runtime import (
 )
 from nucleus.providers._types import AudioResult
 from nucleus.providers.comfyui_client import ComfyUIClientProtocol, default_client
-from nucleus.providers.comfyui_workflows import translate_musicgen, translate_whisper
+from nucleus.providers.comfyui_workflows import (
+    translate_fal_audio,
+    translate_musicgen,
+    translate_whisper,
+)
 
-AudioSubtype = Literal["musicgen", "whisper"]
+AudioSubtype = Literal["musicgen", "whisper", "elevenlabs", "stable_audio"]
+
+_FIXTURE_PREFIX = "s3://nucleus-media/fixtures/comfyui-"
 
 _MOCK_URIS: dict[str, str] = {
-    "musicgen": "s3://nucleus-media/fixtures/comfyui-musicgen.mp3",
-    "whisper": "s3://nucleus-media/fixtures/comfyui-whisper.txt",
+    "musicgen": f"{_FIXTURE_PREFIX}musicgen.mp3",
+    "whisper": f"{_FIXTURE_PREFIX}whisper.txt",
+    "elevenlabs": f"{_FIXTURE_PREFIX}elevenlabs.mp3",
+    "stable_audio": f"{_FIXTURE_PREFIX}stable-audio.mp3",
 }
 
 _COST_ENV: dict[str, str] = {
     "musicgen": "COMFYUI_MUSICGEN_COST_PER_SECOND",
     "whisper": "COMFYUI_WHISPER_COST_PER_SECOND",
+    "elevenlabs": "COMFYUI_ELEVENLABS_COST_PER_SECOND",
+    "stable_audio": "COMFYUI_STABLE_AUDIO_COST_PER_SECOND",
 }
 
-_CONTENT_TYPE: dict[str, str] = {"musicgen": "audio/mpeg", "whisper": "text/plain"}
-_EXT: dict[str, str] = {"musicgen": "mp3", "whisper": "txt"}
+_CONTENT_TYPE: dict[str, str] = {
+    "musicgen": "audio/mpeg",
+    "whisper": "text/plain",
+    "elevenlabs": "audio/mpeg",
+    "stable_audio": "audio/mpeg",
+}
+_EXT: dict[str, str] = {
+    "musicgen": "mp3",
+    "whisper": "txt",
+    "elevenlabs": "mp3",
+    "stable_audio": "mp3",
+}
 
 
 class ComfyUIAudioProvider:
@@ -85,30 +105,64 @@ class ComfyUIAudioProvider:
         genre: str = "",
         energy: float = 0.5,
     ) -> AudioResult:
-        if self.subtype != "musicgen":
+        if self.subtype not in ("musicgen", "stable_audio"):
             raise RuntimeError(
-                f"generate_music() requires subtype='musicgen', got {self.subtype!r}"
+                f"generate_music() requires a music subtype, got {self.subtype!r}"
             )
         if is_mock():
             return AudioResult(
-                audio_url=_MOCK_URIS["musicgen"],
+                audio_url=_MOCK_URIS[self.subtype],
                 duration_s=duration_s,
                 cost_usd=0.0,
                 provider=self.name,
             )
-        # ``prompt`` acts as a free-form override when callers don't pass
-        # structured mood; feed it through the composer for determinism.
-        workflow = translate_musicgen(
-            mood=mood or prompt,
-            genre=genre,
-            duration_s=duration_s,
-            energy=energy,
-        )
+        if self.subtype == "stable_audio":
+            workflow = translate_fal_audio(
+                self.subtype, prompt=prompt or mood, duration_s=duration_s
+            )
+        else:
+            # ``prompt`` acts as a free-form override when callers don't pass
+            # structured mood; feed it through the composer for determinism.
+            workflow = translate_musicgen(
+                mood=mood or prompt,
+                genre=genre,
+                duration_s=duration_s,
+                energy=energy,
+            )
         uri = await self._submit(workflow)
         return AudioResult(
             audio_url=uri,
             duration_s=duration_s,
             cost_usd=self.estimate_cost(duration_s),
+            provider=self.name,
+        )
+
+    # ------------------------------------------------------------------
+    # AudioProvider interface (TTS via fal-API ElevenLabs)
+    # ------------------------------------------------------------------
+
+    async def generate_speech(
+        self, text: str, voice_id: str = "", language: str = "en"
+    ) -> AudioResult:
+        if self.subtype not in ("elevenlabs",):
+            raise RuntimeError(
+                f"generate_speech() requires subtype='elevenlabs', got {self.subtype!r}"
+            )
+        # Approximate duration from character count (used for mock + cost est.).
+        approx_duration = max(1.0, len(text) / 15.0)
+        if is_mock():
+            return AudioResult(
+                audio_url=_MOCK_URIS[self.subtype],
+                duration_s=approx_duration,
+                cost_usd=0.0,
+                provider=self.name,
+            )
+        workflow = translate_fal_audio(self.subtype, prompt=text, duration_s=approx_duration)
+        uri = await self._submit(workflow)
+        return AudioResult(
+            audio_url=uri,
+            duration_s=approx_duration,
+            cost_usd=self.estimate_cost(approx_duration),
             provider=self.name,
         )
 
