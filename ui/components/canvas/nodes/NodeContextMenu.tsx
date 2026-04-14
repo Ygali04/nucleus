@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Copy,
+  MoreVertical,
+  Pencil,
   Play,
   PowerOff,
   Pin,
@@ -45,6 +47,7 @@ export function NodeContextMenu({
   const deleteNode = useCampaignsStore((s) => s.deleteNode);
   const togglePin = useCampaignsStore((s) => s.togglePinNode);
   const swapNodeKind = useCampaignsStore((s) => s.swapNodeKind);
+  const openNodeModal = useCampaignsStore((s) => s.openNodeModal);
 
   const [swapOpen, setSwapOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -81,6 +84,11 @@ export function NodeContextMenu({
       style={{ left: x, top: y }}
       onContextMenu={(e) => e.preventDefault()}
     >
+      <MenuItem
+        icon={<Pencil className="h-3.5 w-3.5" />}
+        label="Edit"
+        onClick={guard(() => openNodeModal(nodeId))}
+      />
       <MenuItem
         icon={<Play className="h-3.5 w-3.5" />}
         label="Queue / Re-run"
@@ -164,10 +172,26 @@ export function NodeContextMenuWrapper({
     e.stopPropagation();
     setPos({ x: e.clientX, y: e.clientY });
   }, []);
+  const onDotsClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    // Anchor the menu just below the dots button.
+    setPos({ x: rect.right - 4, y: rect.bottom + 4 });
+  }, []);
   const close = useCallback(() => setPos(null), []);
   return (
-    <div onContextMenu={onContextMenu}>
+    <div className="group relative" onContextMenu={onContextMenu}>
       {children}
+      <button
+        type="button"
+        aria-label="Node actions"
+        onClick={onDotsClick}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="absolute right-1.5 top-1.5 z-20 inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent bg-white/80 text-[var(--color-muted)] opacity-0 shadow-sm transition hover:border-black/10 hover:bg-white hover:text-[var(--color-ink)] group-hover:opacity-100 focus-visible:opacity-100"
+      >
+        <MoreVertical className="h-3.5 w-3.5" />
+      </button>
       {pos ? (
         <NodeContextMenu
           x={pos.x}
