@@ -18,6 +18,8 @@ from typing import Literal
 from nucleus.config import is_mock
 from nucleus.providers._types import AudioProvider, AudioResult, MusicProvider
 from nucleus.providers.base import VideoProvider
+from nucleus.providers.comfyui_audio import ComfyUIAudioProvider
+from nucleus.providers.comfyui_video import ComfyUIVideoProvider
 from nucleus.providers.elevenlabs_provider import ElevenLabsProvider
 from nucleus.providers.lyria import LyriaProvider
 from nucleus.providers.magihuman import MagiHumanProvider
@@ -42,7 +44,15 @@ def get_provider(
       provider for the requested kind, ignoring *subtype*.
     """
     registry = get_registry()
-    name = "mock" if is_mock() else (subtype or "default")
+    if is_mock():
+        name = "mock"
+    elif subtype is None:
+        name = "default"
+    elif ":" in subtype:
+        # Fully-qualified key like "video:svd" — use as-is.
+        name = subtype
+    else:
+        name = subtype
 
     if kind == "video":
         return registry.get_video_provider(name)
@@ -56,6 +66,8 @@ def get_provider(
 __all__ = [
     "AudioProvider",
     "AudioResult",
+    "ComfyUIAudioProvider",
+    "ComfyUIVideoProvider",
     "ElevenLabsProvider",
     "GenerationResult",
     "JobStatus",
