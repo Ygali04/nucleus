@@ -44,7 +44,7 @@ export function ICPNode({ id, data, selected }: NodeProps) {
           filter: d.bypassed ? 'grayscale(0.4)' : undefined,
         }}
       >
-        <NodeHandles kind="icp" />
+        <NodeHandles kind="icp" extraInputs={(d as { extraInputs?: any }).extraInputs} extraOutputs={(d as { extraOutputs?: any }).extraOutputs} />
         {ruflo ? <RufloBadge /> : null}
 
         <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">

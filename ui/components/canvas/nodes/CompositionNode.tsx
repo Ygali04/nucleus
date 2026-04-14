@@ -36,7 +36,7 @@ export function CompositionNode({ id, data, selected }: NodeProps) {
           filter: d.bypassed ? 'grayscale(0.4)' : undefined,
         }}
       >
-        <NodeHandles kind="composition" />
+        <NodeHandles kind="composition" extraInputs={(d as { extraInputs?: any }).extraInputs} extraOutputs={(d as { extraOutputs?: any }).extraOutputs} />
         {ruflo ? <RufloBadge /> : null}
 
         <div className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-[var(--color-muted)]">

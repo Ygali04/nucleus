@@ -51,41 +51,64 @@ export function TypedHandle({
 
 interface NodeHandlesProps {
   kind: GraphNodeKind;
+  /** Extra input data-types appended at runtime when a new edge type connects. */
+  extraInputs?: NodeDataType[];
+  /** Extra output data-types appended at runtime (rarely used). */
+  extraOutputs?: NodeDataType[];
   showLabels?: boolean; // kept for back-compat; ignored.
 }
 
 /**
  * Renders the canonical input/output handle set for a node kind, evenly
  * distributed vertically along each side. Handle ids follow `in-<type>-<i>` /
- * `out-<type>-<i>` so edges can reference them explicitly.
+ * `out-<type>-<i>` so edges can reference them explicitly. Handles are
+ * de-duplicated so re-connecting the same data type doesn't add a second dot.
  */
-export function NodeHandles({ kind }: NodeHandlesProps) {
+export function NodeHandles({
+  kind,
+  extraInputs = [],
+  extraOutputs = [],
+}: NodeHandlesProps) {
   const io = NODE_IO_MAP[kind] ?? { inputs: [], outputs: [] };
+  const inputs = uniqueTypes([...io.inputs, ...extraInputs]);
+  const outputs = uniqueTypes([...io.outputs, ...extraOutputs]);
 
   return (
     <>
-      {io.inputs.map((dataType, i) => (
+      {inputs.map((dataType, i) => (
         <TypedHandle
           key={`in-${dataType}-${i}`}
           id={`in-${dataType}-${i}`}
           type="target"
           position={Position.Left}
           dataType={dataType}
-          offset={spread(i, io.inputs.length)}
+          offset={spread(i, inputs.length)}
         />
       ))}
-      {io.outputs.map((dataType, i) => (
+      {outputs.map((dataType, i) => (
         <TypedHandle
           key={`out-${dataType}-${i}`}
           id={`out-${dataType}-${i}`}
           type="source"
           position={Position.Right}
           dataType={dataType}
-          offset={spread(i, io.outputs.length)}
+          offset={spread(i, outputs.length)}
         />
       ))}
     </>
   );
+}
+
+function uniqueTypes(list: NodeDataType[]): NodeDataType[] {
+  const seen = new Set<NodeDataType>();
+  const out: NodeDataType[] = [];
+  for (const t of list) {
+    if (!seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  return out;
 }
 
 function spread(index: number, total: number): number {

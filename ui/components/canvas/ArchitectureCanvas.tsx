@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import {
   Background,
@@ -30,6 +30,7 @@ import {
   type CanvasNodeData,
 } from '@/lib/graph-layout';
 import type { GraphEdgeMeta, GraphNodeMeta } from '@/lib/types';
+import { NODE_IO_MAP, type NodeDataType } from '@/lib/node-data-types';
 import { useCanvasStore } from '@/store/canvas-store';
 import { Minimap } from '@/components/canvas/Minimap';
 import { AudioGenNode } from '@/components/canvas/nodes/AudioGenNode';
@@ -128,6 +129,8 @@ function FlowCanvas({
   const campaignId = searchParams.get('campaign');
   const storeAddEdge = useCampaignsStore((s) => s.addEdge);
   const storeUpdateCampaign = useCampaignsStore((s) => s.updateCampaign);
+  const updateNodeData = useCampaignsStore((s) => s.updateNodeData);
+  const openNodeModal = useCampaignsStore((s) => s.openNodeModal);
   const campaign = useCampaignsStore((s) =>
     campaignId ? s.campaigns.find((c) => c.id === campaignId) : null,
   );
@@ -163,26 +166,87 @@ function FlowCanvas({
 
   const onEdgesChange = (changes: EdgeChange[]) => {
     setEdges((current) => applyEdgeChanges(changes, current));
+    // Mirror edge removals back to the persistent graph.
+    if (!campaignId || !campaign?.graph) return;
+    const removalIds = changes
+      .filter((c) => c.type === 'remove')
+      .map((c) => (c as { id: string }).id);
+    if (removalIds.length === 0) return;
+    const graph = campaign.graph as unknown as {
+      nodes?: unknown[];
+      edges?: Array<Record<string, unknown>>;
+    };
+    const nextEdges = (graph.edges ?? []).filter((e) => !removalIds.includes(e.id as string));
+    storeUpdateCampaign(
+      campaignId,
+      { graph: { ...graph, edges: nextEdges } } as Record<string, unknown>,
+    );
+  };
+
+  // Parse handle id ("in-video-0" / "out-audio-1") → data type.
+  const handleType = (handleId: string | null | undefined): NodeDataType | null => {
+    if (!handleId) return null;
+    const m = handleId.match(/^(?:in|out)-([a-z-]+)-\d+$/);
+    return (m?.[1] as NodeDataType) ?? null;
   };
 
   const onConnect = (connection: Connection) => {
-    if (!campaignId) return;
+    if (!campaignId || !connection.source || !connection.target) return;
+    const sourceType = handleType(connection.sourceHandle);
+    const targetNode = nodes.find((n) => n.id === connection.target);
+    let finalTargetHandle = connection.targetHandle ?? undefined;
+
+    // Route the edge to the input socket whose color matches the source type.
+    // If the target node doesn't have such a socket yet, append a dynamic one.
+    if (sourceType && targetNode) {
+      const kind = (targetNode.data as CanvasNodeData).kind;
+      const staticInputs = NODE_IO_MAP[kind]?.inputs ?? [];
+      const extraInputs = ((targetNode.data as CanvasNodeData).data as
+        | { extraInputs?: NodeDataType[] }
+        | undefined)?.extraInputs ?? [];
+      const all: NodeDataType[] = [...staticInputs, ...extraInputs];
+      const matchIdx = all.findIndex((t) => t === sourceType);
+      if (matchIdx >= 0) {
+        finalTargetHandle = `in-${sourceType}-${matchIdx}`;
+      } else {
+        // Add a new dynamic input handle for this type.
+        const nextExtras = [...extraInputs, sourceType];
+        updateNodeData(campaignId, targetNode.id, { extraInputs: nextExtras });
+        finalTargetHandle = `in-${sourceType}-${all.length}`;
+      }
+    }
+
     const newEdge = {
       id: `e-${connection.source}-${connection.target}-${Math.random().toString(36).slice(2, 6)}`,
       source: connection.source,
       target: connection.target,
       sourceHandle: connection.sourceHandle ?? undefined,
-      targetHandle: connection.targetHandle ?? undefined,
+      targetHandle: finalTargetHandle,
       kind: 'dataflow' as const,
     };
     storeAddEdge(campaignId, newEdge);
-    setEdges((current) => addEdge({ ...newEdge, type: 'typed' }, current));
+    setEdges((current) =>
+      addEdge(
+        {
+          ...newEdge,
+          type: 'typed',
+        },
+        current,
+      ),
+    );
   };
+
+  // Track whether a reconnect drag actually landed on a target.
+  const reconnectSucceeded = useRef(true);
+
+  const onReconnectStart = useCallback(() => {
+    reconnectSucceeded.current = false;
+  }, []);
 
   const onReconnect = (oldEdge: Edge, newConnection: Connection) => {
     if (!campaignId) return;
+    reconnectSucceeded.current = true;
     setEdges((current) => reconnectEdge(oldEdge, newConnection, current));
-    // Mirror into the campaign's persistent edge list.
     if (campaign && campaign.graph && typeof campaign.graph === 'object') {
       const graph = campaign.graph as unknown as {
         nodes?: unknown[];
@@ -207,6 +271,30 @@ function FlowCanvas({
     }
   };
 
+  const onReconnectEnd = useCallback(
+    (_event: unknown, edge: Edge) => {
+      if (reconnectSucceeded.current) {
+        reconnectSucceeded.current = true;
+        return;
+      }
+      // User dragged the edge handle into empty space → disconnect.
+      setEdges((current) => current.filter((e) => e.id !== edge.id));
+      if (campaignId && campaign?.graph) {
+        const graph = campaign.graph as unknown as {
+          nodes?: unknown[];
+          edges?: Array<Record<string, unknown>>;
+        };
+        const nextEdges = (graph.edges ?? []).filter((e) => e.id !== edge.id);
+        storeUpdateCampaign(
+          campaignId,
+          { graph: { ...graph, edges: nextEdges } } as Record<string, unknown>,
+        );
+      }
+      reconnectSucceeded.current = true;
+    },
+    [campaignId, campaign, setEdges, storeUpdateCampaign],
+  );
+
   return (
     <div className="relative h-[calc(100vh-92px)] w-full">
       <ReactFlow
@@ -222,11 +310,15 @@ function FlowCanvas({
         nodesConnectable
         edgesFocusable
         elementsSelectable
+        reconnectRadius={24}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onReconnect={onReconnect}
+        onReconnectStart={onReconnectStart}
+        onReconnectEnd={onReconnectEnd}
         onNodeClick={(_, node) => selectNode(node.id)}
+        onNodeDoubleClick={(_, node) => openNodeModal(node.id)}
         defaultViewport={viewport}
         onMoveEnd={(_, nextViewport) => {
           setViewport({
