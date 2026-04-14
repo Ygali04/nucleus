@@ -58,6 +58,12 @@ export const TOOL_REGISTRY: Record<ToolName, RegistryEntry> = {
     description:
       "Apply a targeted edit (hook_rewrite, cut_tightening, music_swap, etc.) to a candidate.",
   },
+  run_comfyui_workflow: {
+    name: "run_comfyui_workflow",
+    endpoint: `${BACKEND_URL}/api/v1/tools/run_comfyui_workflow`,
+    description:
+      "Run an open-weights diffusion or audio workflow (SVD, AnimateDiff, LTX-Video, MusicGen, Whisper) via ComfyUI.",
+  },
 };
 
 /** Type-safe tool invocation helper (legacy, used by static tests). */

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -117,3 +119,19 @@ class EditVariantResponse(BaseModel):
     video_url: str
     cost_usd: float
     edit_applied: str
+
+
+# --- run_comfyui_workflow ---
+
+class RunComfyUIWorkflowRequest(BaseModel):
+    workflow: dict
+    job_id: str
+    candidate_id: str
+    node_id: str
+    expected_output_kind: Literal["video", "audio", "image"]
+
+
+class RunComfyUIWorkflowResponse(BaseModel):
+    output_url: str
+    cost_usd: float
+    duration_s: float
