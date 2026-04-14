@@ -106,6 +106,20 @@ export interface EditVariantOutput {
   edit_applied: string;
 }
 
+// --- run_comfyui_workflow ---
+export interface RunComfyUIWorkflowInput {
+  workflow: Record<string, unknown>;
+  job_id: string;
+  candidate_id: string;
+  node_id: string;
+  expected_output_kind: "video" | "audio" | "image";
+}
+export interface RunComfyUIWorkflowOutput {
+  output_url: string;
+  cost_usd: number;
+  duration_s: number;
+}
+
 // --- tool type map ---
 export interface ToolTypeMap {
   generate_video: { input: GenerateVideoInput; output: GenerateVideoOutput };
@@ -115,6 +129,10 @@ export interface ToolTypeMap {
   clip_ffmpeg: { input: ClipFFmpegInput; output: ClipFFmpegOutput };
   score_neuropeer: { input: ScoreNeuroPeerInput; output: ScoreNeuroPeerOutput };
   edit_variant: { input: EditVariantInput; output: EditVariantOutput };
+  run_comfyui_workflow: {
+    input: RunComfyUIWorkflowInput;
+    output: RunComfyUIWorkflowOutput;
+  };
 }
 
 export type ToolName = keyof ToolTypeMap;

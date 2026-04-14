@@ -13,6 +13,7 @@ from nucleus.tools.edit_variant import edit_variant
 from nucleus.tools.generate_audio import generate_audio
 from nucleus.tools.generate_music import generate_music
 from nucleus.tools.generate_video import generate_video
+from nucleus.tools.run_comfyui_workflow import run_comfyui_workflow
 from nucleus.tools.schemas import (
     ClipFFmpegRequest,
     ClipFFmpegResponse,
@@ -26,6 +27,8 @@ from nucleus.tools.schemas import (
     GenerateMusicResponse,
     GenerateVideoRequest,
     GenerateVideoResponse,
+    RunComfyUIWorkflowRequest,
+    RunComfyUIWorkflowResponse,
     ScoreNeuroPeerRequest,
     ScoreNeuroPeerResponse,
 )
@@ -73,3 +76,10 @@ async def tool_edit_variant(req: EditVariantRequest) -> EditVariantResponse:
         return await edit_variant(req)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/run_comfyui_workflow", response_model=RunComfyUIWorkflowResponse)
+async def tool_run_comfyui_workflow(
+    req: RunComfyUIWorkflowRequest,
+) -> RunComfyUIWorkflowResponse:
+    return await run_comfyui_workflow(req)

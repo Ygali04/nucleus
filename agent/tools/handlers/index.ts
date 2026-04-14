@@ -14,6 +14,7 @@ import { buildEditVariantTool } from "./edit_variant.js";
 import { buildGenerateAudioTool } from "./generate_audio.js";
 import { buildGenerateMusicTool } from "./generate_music.js";
 import { buildGenerateVideoTool } from "./generate_video.js";
+import { buildRunComfyUIWorkflowTool } from "./run_comfyui_workflow.js";
 import { buildScoreNeuroPeerTool } from "./score_neuropeer.js";
 
 export type NucleusToolSet = {
@@ -29,6 +30,7 @@ export function buildToolHandlers(toolsBaseUrl: string): NucleusToolSet {
     clip_ffmpeg: buildClipFFmpegTool(toolsBaseUrl),
     score_neuropeer: buildScoreNeuroPeerTool(toolsBaseUrl),
     edit_variant: buildEditVariantTool(toolsBaseUrl),
+    run_comfyui_workflow: buildRunComfyUIWorkflowTool(toolsBaseUrl),
   };
 }
 
