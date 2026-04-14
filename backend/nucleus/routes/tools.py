@@ -102,6 +102,10 @@ async def build_workflow(req: BuildWorkflowRequest) -> BuildWorkflowResponse:
     return BuildWorkflowResponse(kind=req.kind, subtype=req.subtype, workflow=workflow)
 
 
+_VIDEO_SUBTYPES = {"kling", "seedance", "veo", "runway", "luma", "hailuo"}
+_AUDIO_SUBTYPES = {"elevenlabs", "stable_audio"}
+
+
 def _dispatch_workflow(req: BuildWorkflowRequest) -> dict:
     """Pick the correct translator for a ``BuildWorkflowRequest``."""
     if req.kind == "video":
@@ -120,16 +124,20 @@ def _dispatch_workflow(req: BuildWorkflowRequest) -> dict:
             return comfyui_workflows.translate_ltx_video(
                 prompt=prompt, duration_s=req.duration_s
             )
-        return comfyui_workflows.translate_cloud_video(
+        if req.subtype not in _VIDEO_SUBTYPES:
+            raise ValueError(f"Unknown video subtype: {req.subtype}")
+        return comfyui_workflows.translate_fal_video(
             subtype=req.subtype,
             prompt=prompt,
             duration_s=req.duration_s,
             aspect_ratio=req.aspect_ratio,
-            reference_image_url=req.reference_image_url,
+            reference_image=req.reference_image_url,
         )
 
     if req.kind == "audio":
-        return comfyui_workflows.translate_cloud_audio(
+        if req.subtype not in _AUDIO_SUBTYPES:
+            raise ValueError(f"Unknown audio subtype: {req.subtype}")
+        return comfyui_workflows.translate_fal_audio(
             subtype=req.subtype,
             prompt=req.prompt or "",
             duration_s=req.duration_s,
@@ -150,12 +158,17 @@ def _dispatch_workflow(req: BuildWorkflowRequest) -> dict:
             raise ValueError("edit_type is required for kind='edit'")
         if not req.source_video_url:
             raise ValueError("source_video_url is required for kind='edit'")
-        return comfyui_workflows.translate_edit(
-            edit_type=req.edit_type,
-            source_video_url=req.source_video_url,
-            target_start_s=req.target_start_s,
-            target_end_s=req.target_end_s,
-            source_audio_url=req.source_audio_url,
+        # Edit workflows currently re-run through the upstream video provider
+        # (regenerate the affected segment). Longer-term, map edit_type →
+        # a dedicated editor workflow (hook rewrite, cut tightening, etc.).
+        edit_prompt = (
+            f"[{req.edit_type}] "
+            f"{req.source_video_url} ({req.target_start_s}s-{req.target_end_s}s)"
+        )
+        return comfyui_workflows.translate_fal_video(
+            subtype="kling",
+            prompt=edit_prompt,
+            duration_s=5.0,
         )
 
     raise ValueError(f"Unknown kind: {req.kind}")

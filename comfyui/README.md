@@ -1,45 +1,79 @@
 # ComfyUI service
 
-ComfyUI here is an **orchestration layer** that proxies closed-source hosted
-API providers. It gives us DAG execution, result caching, and WebSocket
-progress streaming on top of custom nodes that call out to fal.ai,
-ElevenLabs, and friends. **No GPU or model downloads required.**
+ComfyUI is our backend execution engine for open-weights diffusion and audio
+models (SVD, AnimateDiff, LTX-Video, SDXL, MusicGen, Whisper, ...). API-hosted
+models (Kling, ElevenLabs, Lyria) keep their direct SDK paths — they are NOT
+routed through ComfyUI.
 
-## Installed custom nodes
+## What's in this image
 
-- `ComfyUI-Manager` — runtime node/model management UI.
-- `ComfyUI-fal-API` — fal.ai proxy. Provides Kling 1.6, Kling 2.1,
-  Seedance 1 Pro, Veo 3, Runway Gen-3 / Gen-4, Luma Dream Machine,
-  Hailuo 02, Flux, Stable Audio 2.
-- `ComfyUI-ElevenLabs` — ElevenLabs TTS and voice cloning.
-- `ComfyUI-IF_AI_tools` — OpenAI / Anthropic LLM nodes, useful for
-  Ruflo-driven prompt refinement inside workflows.
+- Base: `python:3.11-slim` (CPU-only; fine for local dev on Mac)
+- ComfyUI cloned from upstream `main`
+- Custom nodes (cloned into `/app/comfyui/custom_nodes`):
+  - `ComfyUI-Manager` — runtime node/model management UI
+  - `ComfyUI-VideoHelperSuite` — video load / combine / save
+  - `ComfyUI-AnimateDiff-Evolved` — AnimateDiff pipelines
+  - `ComfyUI-Advanced-ControlNet` — extended ControlNet support
+  - `ComfyUI_essentials` — general-purpose utility nodes
 
-## Required environment variables
+## Swapping in the GPU image for production
 
-Set these on the host; `docker-compose.yml` passes them into the container:
+For production we run on an NVIDIA GPU host. Change the first line of
+`Dockerfile` to:
 
-- `FAL_KEY` — fal.ai key (Kling, Seedance, Veo, Runway, Luma, Hailuo, Flux,
-  Stable Audio).
-- `ELEVENLABS_API_KEY` — ElevenLabs voice.
+```dockerfile
+FROM nvidia/cuda:12.1-runtime-ubuntu22.04
+```
 
-## Adding more providers
+and add the Ubuntu python install step before pip:
 
-Open http://localhost:8188 and use the ComfyUI-Manager UI to install more
-custom nodes. When you add a new API-proxy node, WU-X2's translators also
-need updating so the backend emits the right workflow JSON for it.
+```dockerfile
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 python3.11-venv python3-pip \
+    && ln -s /usr/bin/python3.11 /usr/local/bin/python
+```
+
+Then replace the CPU torch install with a CUDA build, e.g.:
+
+```dockerfile
+RUN pip install --index-url https://download.pytorch.org/whl/cu121 \
+        torch torchvision torchaudio
+```
+
+The container must be launched with `--gpus all` (docker) or the equivalent
+`deploy.resources.reservations.devices` block in compose.
+
+## Where models go
+
+ComfyUI expects model weights under `/app/comfyui/models/<category>/`.
+Docker-compose mounts the named volume `nucleus-comfyui-models` there so
+weights persist across rebuilds:
+
+```
+/app/comfyui/models/
+  checkpoints/   # SDXL, SD1.5 .safetensors
+  unet/          # standalone unets (LTX-Video, Flux)
+  vae/
+  clip/
+  controlnet/
+  animatediff_models/
+  animatediff_motion_lora/
+```
+
+Drop files into the host's `nucleus-comfyui-models` volume (or bind-mount a
+local directory) and restart the service — no image rebuild required.
 
 ## Outputs and inputs
 
 - `/tmp/nucleus/comfyui-out` — final renders. Bind-mounted so the Nucleus
-  worker can read them directly when we skip the HTTP fetch.
+  worker can read them directly when we skip HTTP fetch.
 - `/tmp/nucleus/comfyui-in` — inputs (init images, reference audio).
   Upload via `POST /upload/image` or drop files into the mount.
 
 ## Ports
 
-- `8188` — HTTP API (`/prompt`, `/history`, `/view`, `/queue`,
-  `/object_info`) and WebSocket (`/ws?clientId=...`).
+- `8188` — HTTP API (`/prompt`, `/history`, `/view`, `/queue`, `/object_info`)
+  and WebSocket (`/ws?clientId=...`).
 
 ## Authentication
 

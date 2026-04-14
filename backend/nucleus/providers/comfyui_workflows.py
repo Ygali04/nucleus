@@ -14,6 +14,7 @@ can be unit tested without any ComfyUI server.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 # Sensible default reference frame when callers don't supply one.
@@ -230,6 +231,147 @@ def translate_ltx_video(
     }
 
 
+def _fal_api_video_workflow(
+    *,
+    model: str,
+    prompt: str,
+    duration_s: float,
+    aspect_ratio: str,
+    reference_image: str | None,
+    filename_prefix: str,
+) -> Workflow:
+    """Build a ComfyUI workflow that calls a fal.ai video endpoint via the
+    `ComfyUI-fal-API` custom-node pack.
+
+    The custom pack exposes a single ``FalAPIVideoGenerator`` node that takes
+    a fal model slug plus model-specific arguments as a JSON string.  This
+    keeps one translator for every fal-hosted video model (Kling, Seedance,
+    Veo, Runway, Luma, Hailuo).
+    """
+    arguments: dict[str, Any] = {
+        "prompt": prompt,
+        "duration": str(duration_s),
+        "aspect_ratio": aspect_ratio,
+    }
+    if reference_image:
+        arguments["image_url"] = reference_image
+
+    workflow: Workflow = {
+        "1": {
+            "class_type": "FalAPIVideoGenerator",
+            "inputs": {
+                "model": model,
+                "arguments_json": json.dumps(arguments),
+            },
+        },
+        "2": {
+            "class_type": "VHS_VideoCombine",
+            "inputs": {
+                "images": _ref("1", 0),
+                "frame_rate": 24,
+                "filename_prefix": filename_prefix,
+                "format": "video/h264-mp4",
+            },
+        },
+    }
+    return workflow
+
+
+# Map provider subtype → (fal model slug, filename prefix).
+_FAL_VIDEO_MODELS: dict[str, tuple[str, str, str]] = {
+    # subtype → (text-to-video model, image-to-video model, filename prefix)
+    "kling": (
+        "fal-ai/kling-video/v2.1/standard/text-to-video",
+        "fal-ai/kling-video/v2.1/standard/image-to-video",
+        "nucleus-kling",
+    ),
+    "seedance": (
+        "fal-ai/bytedance/seedance/v1/pro/text-to-video",
+        "fal-ai/bytedance/seedance/v1/pro/image-to-video",
+        "nucleus-seedance",
+    ),
+    "veo": (
+        "fal-ai/veo3/text-to-video",
+        "fal-ai/veo3/image-to-video",
+        "nucleus-veo",
+    ),
+    "runway": (
+        "fal-ai/runway-gen3/turbo/text-to-video",
+        "fal-ai/runway-gen3/turbo/image-to-video",
+        "nucleus-runway",
+    ),
+    "luma": (
+        "fal-ai/luma-dream-machine/text-to-video",
+        "fal-ai/luma-dream-machine/image-to-video",
+        "nucleus-luma",
+    ),
+    "hailuo": (
+        "fal-ai/minimax/hailuo-02/standard/text-to-video",
+        "fal-ai/minimax/hailuo-02/standard/image-to-video",
+        "nucleus-hailuo",
+    ),
+}
+
+
+def translate_fal_video(
+    subtype: str,
+    prompt: str,
+    duration_s: float,
+    aspect_ratio: str = "16:9",
+    reference_image: str | None = None,
+) -> Workflow:
+    """Translate a fal-hosted video request to a ComfyUI workflow."""
+    if subtype not in _FAL_VIDEO_MODELS:
+        raise ValueError(f"Unknown fal video subtype: {subtype!r}")
+    t2v, i2v, prefix = _FAL_VIDEO_MODELS[subtype]
+    model = i2v if reference_image else t2v
+    return _fal_api_video_workflow(
+        model=model,
+        prompt=prompt,
+        duration_s=duration_s,
+        aspect_ratio=aspect_ratio,
+        reference_image=reference_image,
+        filename_prefix=prefix,
+    )
+
+
+def translate_fal_audio(
+    subtype: str,
+    prompt: str,
+    duration_s: float,
+) -> Workflow:
+    """Translate a fal-hosted audio request (ElevenLabs TTS, Stable Audio)."""
+    models = {
+        "elevenlabs": ("fal-ai/elevenlabs/tts/multilingual-v2", "nucleus-elevenlabs"),
+        "stable_audio": ("fal-ai/stable-audio", "nucleus-stable-audio"),
+    }
+    if subtype not in models:
+        raise ValueError(f"Unknown fal audio subtype: {subtype!r}")
+    model, prefix = models[subtype]
+
+    arguments: dict[str, Any] = {"text" if subtype == "elevenlabs" else "prompt": prompt}
+    if subtype == "stable_audio":
+        arguments["seconds_total"] = float(duration_s)
+
+    return {
+        "1": {
+            "class_type": "FalAPIAudioGenerator",
+            "inputs": {
+                "model": model,
+                "arguments_json": json.dumps(arguments),
+            },
+        },
+        "2": {
+            "class_type": "SaveAudio",
+            "inputs": {
+                "audio": _ref("1", 0),
+                "filename_prefix": prefix,
+                "format": "mp3",
+            },
+        },
+    }
+
+
 def _compose_music_prompt(mood: str, genre: str, energy: float) -> str:
     """Turn structured music params into a natural-language prompt."""
     energy_word = "low-energy" if energy < 0.34 else (
@@ -303,135 +445,11 @@ def translate_whisper(audio_url: str) -> Workflow:
     }
 
 
-# ---------------------------------------------------------------------------
-# Cloud-provider workflow shims
-#
-# Kling / Seedance / Veo / Runway / Luma / Hailuo are hosted cloud video
-# models. They don't run inside ComfyUI proper, but the Nucleus ComfyUI
-# event bridge treats any workflow dict the same way: submit it, stream
-# progress, pull the final artifact. We expose thin single-node workflows
-# here so Ruflo can speak one vocabulary ("build me a workflow for X")
-# regardless of whether the backend is open-weights or cloud-API.
-#
-# A custom ComfyUI node (``NucleusCloudVideo`` / ``NucleusCloudAudio``)
-# is assumed to exist that dispatches to the corresponding Nucleus
-# provider — see ``nucleus/providers/{kling,seedance,elevenlabs,...}.py``.
-# ---------------------------------------------------------------------------
-
-_VIDEO_SUBTYPES = {"kling", "seedance", "veo", "runway", "luma", "hailuo"}
-_AUDIO_SUBTYPES = {"elevenlabs", "stable_audio"}
-_EDIT_TYPES = {
-    "hook_rewrite",
-    "cut_tightening",
-    "music_swap",
-    "pacing_change",
-    "narration_rewrite",
-    "visual_substitution",
-    "caption_emphasis",
-    "icp_reanchor",
-}
-
-
-def translate_cloud_video(
-    subtype: str,
-    prompt: str,
-    duration_s: float,
-    aspect_ratio: str = "16:9",
-    reference_image_url: str | None = None,
-) -> Workflow:
-    """Single-node workflow that dispatches to a Nucleus cloud video provider."""
-    if subtype not in _VIDEO_SUBTYPES:
-        raise ValueError(f"Unknown cloud video subtype: {subtype}")
-    return {
-        "1": {
-            "class_type": "NucleusCloudVideo",
-            "inputs": {
-                "provider": subtype,
-                "prompt": prompt,
-                "duration_s": float(duration_s),
-                "aspect_ratio": aspect_ratio,
-                "reference_image_url": reference_image_url or "",
-            },
-        },
-        "2": {
-            "class_type": "VHS_VideoCombine",
-            "inputs": {
-                "images": _ref("1", 0),
-                "frame_rate": 24,
-                "filename_prefix": f"nucleus-{subtype}",
-                "format": "video/h264-mp4",
-            },
-        },
-    }
-
-
-def translate_cloud_audio(
-    subtype: str,
-    prompt: str,
-    duration_s: float,
-) -> Workflow:
-    """Single-node workflow for cloud TTS / audio models (ElevenLabs, Stable Audio)."""
-    if subtype not in _AUDIO_SUBTYPES:
-        raise ValueError(f"Unknown cloud audio subtype: {subtype}")
-    return {
-        "1": {
-            "class_type": "NucleusCloudAudio",
-            "inputs": {
-                "provider": subtype,
-                "prompt": prompt,
-                "duration_s": float(duration_s),
-            },
-        },
-        "2": {
-            "class_type": "SaveAudio",
-            "inputs": {
-                "audio": _ref("1", 0),
-                "filename_prefix": f"nucleus-{subtype}",
-                "format": "mp3",
-            },
-        },
-    }
-
-
-def translate_edit(
-    edit_type: str,
-    source_video_url: str,
-    target_start_s: float | None = None,
-    target_end_s: float | None = None,
-    source_audio_url: str | None = None,
-) -> Workflow:
-    """Single-node workflow that dispatches to an ffmpeg-backed edit operation."""
-    if edit_type not in _EDIT_TYPES:
-        raise ValueError(f"Unknown edit_type: {edit_type}")
-    return {
-        "1": {
-            "class_type": "NucleusEdit",
-            "inputs": {
-                "edit_type": edit_type,
-                "source_video_url": source_video_url,
-                "source_audio_url": source_audio_url or "",
-                "target_start_s": -1.0 if target_start_s is None else float(target_start_s),
-                "target_end_s": -1.0 if target_end_s is None else float(target_end_s),
-            },
-        },
-        "2": {
-            "class_type": "VHS_VideoCombine",
-            "inputs": {
-                "images": _ref("1", 0),
-                "frame_rate": 24,
-                "filename_prefix": f"nucleus-edit-{edit_type}",
-                "format": "video/h264-mp4",
-            },
-        },
-    }
-
-
 __all__ = [
     "Workflow",
     "translate_animatediff_text_to_video",
-    "translate_cloud_audio",
-    "translate_cloud_video",
-    "translate_edit",
+    "translate_fal_audio",
+    "translate_fal_video",
     "translate_ltx_video",
     "translate_musicgen",
     "translate_svd_image_to_video",

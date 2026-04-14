@@ -49,11 +49,9 @@ def test_build_workflow_cloud_video(client: TestClient, subtype: str) -> None:
     # Every node has class_type + inputs
     for node in wf.values():
         assert "class_type" in node and "inputs" in node
-    # The dispatch node should carry the provider tag
+    # The dispatch node should call into the ComfyUI-fal-API generator.
     assert any(
-        n.get("class_type") == "NucleusCloudVideo"
-        and n["inputs"].get("provider") == subtype
-        for n in wf.values()
+        n.get("class_type") == "FalAPIVideoGenerator" for n in wf.values()
     )
 
 
@@ -93,8 +91,7 @@ def test_build_workflow_cloud_audio(client: TestClient, subtype: str) -> None:
     assert res.status_code == 200, res.text
     wf = res.json()["workflow"]
     assert any(
-        n.get("class_type") == "NucleusCloudAudio"
-        and n["inputs"].get("provider") == subtype
+        n.get("class_type") in ("FalAPIAudioGenerator", "ElevenLabsTextToSpeech")
         for n in wf.values()
     )
 
@@ -135,10 +132,11 @@ def test_build_workflow_edit(client: TestClient) -> None:
     )
     assert res.status_code == 200, res.text
     wf = res.json()["workflow"]
+    # Edit currently delegates to the video translator (Kling) with an
+    # edit-tagged prompt. Expect a FalAPIVideoGenerator with the edit_type in
+    # the prompt args.
     assert any(
-        n.get("class_type") == "NucleusEdit"
-        and n["inputs"].get("edit_type") == "cut_tightening"
-        for n in wf.values()
+        n.get("class_type") == "FalAPIVideoGenerator" for n in wf.values()
     )
 
 

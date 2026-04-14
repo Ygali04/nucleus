@@ -24,28 +24,67 @@ from nucleus.providers._comfyui_runtime import (
 from nucleus.providers.comfyui_client import ComfyUIClientProtocol, default_client
 from nucleus.providers.comfyui_workflows import (
     translate_animatediff_text_to_video,
+    translate_fal_video,
     translate_ltx_video,
     translate_svd_image_to_video,
 )
 from nucleus.providers.types import GenerationResult, ProviderJobStatus
 
-VideoSubtype = Literal["svd", "animatediff", "ltxv"]
+VideoSubtype = Literal[
+    "svd",
+    "animatediff",
+    "ltxv",
+    "kling",
+    "seedance",
+    "veo",
+    "runway",
+    "luma",
+    "hailuo",
+]
+
+_FIXTURE_PREFIX = "s3://nucleus-media/fixtures/comfyui-"
 
 _MOCK_URIS: dict[str, str] = {
-    "svd": "s3://nucleus-media/fixtures/comfyui-svd.mp4",
-    "animatediff": "s3://nucleus-media/fixtures/comfyui-animatediff.mp4",
-    "ltxv": "s3://nucleus-media/fixtures/comfyui-ltxv.mp4",
+    "svd": f"{_FIXTURE_PREFIX}svd.mp4",
+    "animatediff": f"{_FIXTURE_PREFIX}animatediff.mp4",
+    "ltxv": f"{_FIXTURE_PREFIX}ltxv.mp4",
+    "kling": f"{_FIXTURE_PREFIX}kling.mp4",
+    "seedance": f"{_FIXTURE_PREFIX}seedance.mp4",
+    "veo": f"{_FIXTURE_PREFIX}veo.mp4",
+    "runway": f"{_FIXTURE_PREFIX}runway.mp4",
+    "luma": f"{_FIXTURE_PREFIX}luma.mp4",
+    "hailuo": f"{_FIXTURE_PREFIX}hailuo.mp4",
 }
 
 _COST_ENV: dict[str, str] = {
     "svd": "COMFYUI_SVD_COST_PER_SECOND",
     "animatediff": "COMFYUI_ANIMATEDIFF_COST_PER_SECOND",
     "ltxv": "COMFYUI_LTXV_COST_PER_SECOND",
+    "kling": "COMFYUI_KLING_COST_PER_SECOND",
+    "seedance": "COMFYUI_SEEDANCE_COST_PER_SECOND",
+    "veo": "COMFYUI_VEO_COST_PER_SECOND",
+    "runway": "COMFYUI_RUNWAY_COST_PER_SECOND",
+    "luma": "COMFYUI_LUMA_COST_PER_SECOND",
+    "hailuo": "COMFYUI_HAILUO_COST_PER_SECOND",
+}
+
+# Default per-second pricing for fal-hosted models (when env override unset).
+_DEFAULT_FAL_COST: dict[str, float] = {
+    "kling": 0.084,
+    "seedance": 0.05,
+    "veo": 0.20,
+    "runway": 0.10,
+    "luma": 0.08,
+    "hailuo": 0.05,
 }
 
 
 def _build_workflow(
-    subtype: str, prompt: str, duration_s: float, reference_image: str | None
+    subtype: str,
+    prompt: str,
+    duration_s: float,
+    reference_image: str | None,
+    aspect_ratio: str = "16:9",
 ) -> dict:
     if subtype == "svd":
         return translate_svd_image_to_video(
@@ -57,6 +96,14 @@ def _build_workflow(
         return translate_animatediff_text_to_video(prompt, duration_s)
     if subtype == "ltxv":
         return translate_ltx_video(prompt, duration_s)
+    if subtype in _DEFAULT_FAL_COST:
+        return translate_fal_video(
+            subtype=subtype,
+            prompt=prompt,
+            duration_s=duration_s,
+            aspect_ratio=aspect_ratio,
+            reference_image=reference_image,
+        )
     raise ValueError(f"Unknown ComfyUI video subtype: {subtype!r}")
 
 
@@ -75,7 +122,8 @@ class ComfyUIVideoProvider:
             raise ValueError(f"Unknown ComfyUI video subtype: {subtype!r}")
         self.subtype = subtype
         self.name = f"comfyui-{subtype}"
-        self.cost_per_second = cost_per_second_from_env(_COST_ENV[subtype])
+        env_cost = cost_per_second_from_env(_COST_ENV[subtype])
+        self.cost_per_second = env_cost or _DEFAULT_FAL_COST.get(subtype, 0.0)
         self._client = client
         self._job_id = job_id
 
@@ -106,7 +154,9 @@ class ComfyUIVideoProvider:
                 metadata={"prompt": prompt, "subtype": self.subtype, "mock": True},
             )
 
-        workflow = _build_workflow(self.subtype, prompt, duration_s, reference_image)
+        workflow = _build_workflow(
+            self.subtype, prompt, duration_s, reference_image, aspect_ratio
+        )
         uri, prompt_id, filename = await run_and_upload(
             self._resolve_client(),
             workflow,
