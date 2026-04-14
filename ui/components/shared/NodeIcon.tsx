@@ -7,10 +7,10 @@ interface NodeIconProps {
 }
 
 export function NodeIcon({
-  type = 'service',
+  type = 'video_gen',
   className = 'h-4 w-4',
 }: NodeIconProps) {
   const Icon = (NODE_ICON_MAP[type as keyof typeof NODE_ICON_MAP] ||
-    NODE_ICON_MAP.service) as LucideIcon;
+    NODE_ICON_MAP.video_gen) as LucideIcon;
   return <Icon className={className} strokeWidth={1.75} />;
 }

@@ -108,7 +108,7 @@ const definitions = [
     6,
     'completed',
   ],
-  ['task-018', 'Compose Friday executive email', 'reporting', 4, 'pending'],
+  ['task-018', 'Compose Friday campaign summary email', 'reporting', 4, 'pending'],
   [
     'task-019',
     'Refresh board dashboard metrics',

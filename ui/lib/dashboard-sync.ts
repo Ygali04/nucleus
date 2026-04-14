@@ -114,7 +114,7 @@ export function normalizeTasks(
   ].map((item) => parseTask(String(item.raw || ''), item.status, item.file));
 }
 
-export async function syncDashboardData(surface: 'provider' | 'project') {
+export async function syncDashboardData() {
   const store = useDashboardStore.getState();
   const startedAt = new Date().toISOString();
 
@@ -126,47 +126,25 @@ export async function syncDashboardData(surface: 'provider' | 'project') {
       dashboardApi.getTasks(),
       dashboardApi.getActivity(),
       dashboardApi.getMessages(),
-      surface === 'provider'
-        ? dashboardApi.getCostHistory()
-        : Promise.resolve<CostHistoryPoint[]>(dummyCostHistory),
+      dashboardApi.getCostHistory(),
     ]);
 
     store.setAgents(normalizeAgents(state));
     store.setTasks(normalizeTasks(tasks));
     store.setActivity(activity);
     store.setMessages(messages);
-    if (surface === 'provider') {
-      store.setCostHistory(costHistory);
-    }
+    store.setCostHistory(costHistory);
     store.setLiveMode(true);
     store.setLastSyncedAt(startedAt);
-    store.prependActivity({
-      ts: startedAt,
-      agent: 'system',
-      type: 'thinking',
-      data: {
-        summary: `Manual sync completed for ${surface} workspace`,
-      },
-    });
     return { liveMode: true, syncedAt: startedAt };
   } catch {
     store.setAgents(dummyAgents);
     store.setTasks(dummyTasks);
     store.setActivity(dummyActivity as ActivityEntry[]);
     store.setMessages(dummyMessages);
-    if (surface === 'provider') {
-      store.setCostHistory(dummyCostHistory);
-    }
+    store.setCostHistory(dummyCostHistory as CostHistoryPoint[]);
     store.setLiveMode(false);
     store.setLastSyncedAt(startedAt);
-    store.prependActivity({
-      ts: startedAt,
-      agent: 'system',
-      type: 'error',
-      data: {
-        summary: `Runtime unavailable, fell back to demo data for ${surface} workspace`,
-      },
-    });
     return { liveMode: false, syncedAt: startedAt };
   } finally {
     useDashboardStore.getState().setSyncing(false);

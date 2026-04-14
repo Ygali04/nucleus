@@ -1,5 +1,4 @@
 import { DASHBOARD_API_BASE } from '@/lib/constants';
-import { getDashboardSurface } from '@/lib/surface';
 import type {
   ActivityEntry,
   CostHistoryPoint,
@@ -10,12 +9,7 @@ import type {
 } from '@/lib/types';
 
 function withView(path: string): string {
-  const currentPath =
-    typeof window === 'undefined' ? '/' : window.location.pathname;
-  const view = getDashboardSurface(currentPath);
-  const url = new URL(path, 'http://localhost');
-  url.searchParams.set('view', view);
-  return `${url.pathname}${url.search}`;
+  return path;
 }
 
 async function requestJson<T>(path: string): Promise<T> {

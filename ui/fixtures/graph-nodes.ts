@@ -129,7 +129,7 @@ export const dummyGraphNodes: GraphNodeMeta[] = [
     kind: 'database',
     subtype: 'postgres',
     status: 'new',
-    statusText: 'Just deployed',
+    statusText: 'Just executed',
     metaTag: 'artifact-persistence',
     x: 560,
     y: 360,
