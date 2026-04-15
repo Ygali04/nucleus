@@ -61,7 +61,10 @@ Design docs live at https://ygali04.github.io/nucleus and under `docs/`. Read th
 | Per-kind node modals | `ui/components/panels/node-modals/` |
 | Zustand stores | `ui/store/campaigns-store.ts` (main), `canvas-store.ts`, `events-store.ts`, `pipeline-store.ts` |
 | Archetype seed graphs | `ui/lib/campaign-archetypes.ts` |
-| Data-type → color map | `ui/lib/node-data-types.ts` |
+| Data-type → color map | `ui/lib/node-data-types.ts` (includes the `image` NodeDataType) |
+| Node kinds (new this batch) | `source_video`, `storyboard`, `image_edit` — modals under `ui/components/panels/node-modals/`, wiring in `NODE_IO_MAP` |
+| Default system prompts per node | `ui/lib/system-prompt-defaults.ts` (every node kind has a template; modals expose an editable override) |
+| Ruflo agent configs | `agent/agents/*.yaml` — selects the brain model (GLM-4.7-flash today, MiniMax M2.7 later) |
 
 ### Before you change anything
 
@@ -156,11 +159,23 @@ Documented in the header of `ui/components/panels/node-modals/NodeModalShell.tsx
 4. User clicks **Run**. Backend enqueues a Celery task → orchestrator loop → POSTs to Ruflo bridge → Ruflo queen drives generate/score/edit cycles, emitting `tool.comfyui.*` events (progress percent, node complete, cached, failed) + `canvas.node_added` / `canvas.edge_added` when Ruflo decides to extend the pipeline.
 5. Events stream back via WebSocket to the UI. Each node's progress bar fills live; Ruflo-added nodes appear with a violet "✦ Ruflo" arrival glow; scored iterations write `AnalysisResult` JSON into `iterations.analysis_result_json` so the Reports page can visualize them.
 6. When all variants pass the neural-score threshold, delivery node shows URLs. User can compare variants side-by-side on `/reports`.
+7. **Ceiling fallback.** If any variant hits `maxIterations` without clearing the threshold, the orchestrator forwards it to the delivery node anyway with a GTM note (what it tried, what scored best, what's still weak) and emits a `chat.assistant_message` explaining the decision. Campaigns always terminate — never spin.
+
+### Chat system
+
+- A per-campaign chat panel streams `chat.user_message` and `chat.assistant_message` events through the same WebSocket bus as pipeline events.
+- Both kinds are persisted per campaign (replayable on reload), so Ruflo's reasoning trail survives page refreshes.
+- Ruflo writes `chat.assistant_message` whenever it mutates the graph, applies a ceiling fallback, or needs to surface a decision. Treat it as Ruflo's voice into the UI.
+
+### System prompts per node
+
+Every node kind has a default template in `ui/lib/system-prompt-defaults.ts`. Each modal exposes it as an editable override stored on the node's data. When adding a new node kind, add its default template there or the modal's override field renders empty.
 
 ### Architectural intents
 
 - **Ruflo orchestrates, ComfyUI executes, Nucleus is the shell.** Ruflo picks edit primitives using agent reasoning; ComfyUI runs the workflow (DAG execution, caching, progress streaming); Nucleus owns the product shell, auth (future), billing (future), and the user-facing canvas. Don't mix layers.
-- **ComfyUI proxies closed-source APIs.** User refuses to self-host weights. Every model call goes through ComfyUI-fal-API, ComfyUI-ElevenLabs, etc. CPU-only image, no GPU. If a future model has no ComfyUI custom node, either (a) write one, (b) add a direct SDK provider behind `NUCLEUS_USE_DIRECT_SDK=true`, or (c) skip the model.
+- **ComfyUI proxies closed-source APIs.** User refuses to self-host weights. Every model call goes through ComfyUI-fal-API, ComfyUI-ElevenLabs, etc. CPU-only image, no GPU. If a future model has no ComfyUI custom node, either (a) write one, (b) add a direct SDK provider behind `NUCLEUS_USE_DIRECT_SDK=true`, or (c) skip the model. Current provider-registry additions include `image:flux_t2i` and `image:flux_i2i` via `flux.1-kontext-dev` on SiliconFlow (`SILICONFLOW_KEY`).
+- **Ruflo's brain is GLM-4.7-flash today.** Configured per-agent in `agent/agents/*.yaml` and authenticated via `GLM_KEY`. MiniMax M2.7 is the planned upgrade (see `FOLLOWUPS.md`).
 - **The closed loop is load-bearing.** Scoring → Editor is not just "next step in a chain" — the scoring's `report` edge carries NeuroPeer action items that tell the Editor *what to fix*. Editor's output goes back through scoring. This is the core product differentiator. Don't break it when adding new archetypes or edit primitives.
 - **Persistence happens in 3 layers.** (1) React state for live UI. (2) Zustand `persist` → localStorage for offline/reload survival. (3) Backend `apiClient.updateCampaign` debounced 600ms for cross-device sync. All three are live simultaneously. When adding a new graph mutation, call `schedulePersist` in `campaigns-store.ts` alongside the `set(...)`.
 
@@ -193,6 +208,8 @@ cd backend && pip install -e ".[dev]"
 DATABASE_URL=sqlite+aiosqlite:////tmp/nucleus.db python -m nucleus.db.migrate
 
 # Terminal A — API
+# Minimum env for a live (non-mock) run: SILICONFLOW_KEY (flux images), GLM_KEY (Ruflo brain),
+# FAL_KEY (Kling/Seedance/Veo via ComfyUI), ELEVENLABS_API_KEY (voice), NEUROPEER_API_KEY (scoring).
 NUCLEUS_MOCK_PROVIDERS=true NUCLEUS_NO_REDIS=1 NUCLEUS_EAGER_TASKS=1 \
   DATABASE_URL=sqlite+aiosqlite:////tmp/nucleus.db \
   uvicorn nucleus.app:app --port 8000
