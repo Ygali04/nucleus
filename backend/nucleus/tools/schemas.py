@@ -169,3 +169,45 @@ class BuildWorkflowResponse(BaseModel):
     kind: Literal["video", "audio", "music", "edit"]
     subtype: str
     workflow: dict
+
+
+# --- generate_gtm_strategy (strategist agent) ---
+
+
+class StrategyVariant(BaseModel):
+    """One scored variant handed off from the Delivery node."""
+
+    video_url: str
+    score: float
+    report: dict = Field(default_factory=dict)
+    cost_usd: float = 0.0
+    iteration_count: int = 0
+    # Optional context so the strategist can route to ICP/platform cleanly.
+    icp: str | None = None
+    platform: str | None = None
+    archetype: str | None = None
+    language: str | None = None
+
+
+class GenerateGtmStrategyRequest(BaseModel):
+    campaign_id: str
+    variants: list[StrategyVariant] = Field(default_factory=list)
+    brand_name: str | None = None
+
+
+class GenerateGtmStrategyResponse(BaseModel):
+    gtm_guide: str  # markdown
+    strategy_summary: str
+
+
+class GenerateSopRequest(BaseModel):
+    campaign_id: str
+    variants: list[StrategyVariant] = Field(default_factory=list)
+    brand_kb: dict = Field(default_factory=dict)
+    icp: dict = Field(default_factory=dict)
+    iterations_log: list[dict] = Field(default_factory=list)
+    brand_name: str | None = None
+
+
+class GenerateSopResponse(BaseModel):
+    sop_doc: str  # markdown

@@ -424,4 +424,4 @@ export interface PipelineEvent {
 
 export type PipelineEventSeverity = 'info' | 'warn' | 'error';
 
-export type { Campaign } from '@/lib/api-client';
+export type { Campaign, CampaignDeliverables } from '@/lib/api-client';

@@ -191,3 +191,31 @@ def test_reports_populated_after_mock_execute(client):
 def test_reports_missing_campaign_returns_404(client):
     res = client.get("/api/v1/campaigns/missing/reports")
     assert res.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Deliverables (GTM + SOP persistence)
+# ---------------------------------------------------------------------------
+
+def test_patch_campaign_deliverables_persists(client):
+    created = client.post("/api/v1/campaigns", json=_create_payload()).json()
+    patch_body = {
+        "deliverables": {
+            "gtm_guide": "# GTM\n- launch on TikTok first",
+            "sop_doc": "# SOP\n- brand voice: warm",
+            "strategy_summary": "ship v1 first",
+            "generated_at": "2026-04-14T12:00:00+00:00",
+        }
+    }
+    res = client.patch(f"/api/v1/campaigns/{created['id']}", json=patch_body)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["deliverables"] is not None
+    assert "GTM" in body["deliverables"]["gtm_guide"]
+    assert "SOP" in body["deliverables"]["sop_doc"]
+    assert body["deliverables"]["strategy_summary"] == "ship v1 first"
+
+    # Refetch to confirm the value round-tripped through the store layer.
+    fetched = client.get(f"/api/v1/campaigns/{created['id']}").json()
+    assert fetched["deliverables"]["gtm_guide"].startswith("# GTM")
+    assert fetched["deliverables"]["sop_doc"].startswith("# SOP")

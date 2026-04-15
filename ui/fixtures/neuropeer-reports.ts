@@ -5,6 +5,7 @@ import type {
   NeuralScoreBreakdown,
   NeuroPeerReport,
 } from '@/lib/types';
+import type { CampaignDeliverables } from '@/lib/api-client';
 
 export interface ReportCampaignFixture {
   id: string;
@@ -15,6 +16,7 @@ export interface ReportCampaignFixture {
     createdAt: string;
     report: NeuroPeerReport | null;
   }>;
+  deliverables?: CampaignDeliverables;
 }
 
 const DIMENSION_META: Record<
@@ -269,6 +271,43 @@ export const NEUROPEER_CAMPAIGN_FIXTURES: ReportCampaignFixture[] = [
         report: NEUROPEER_REPORT_FIXTURES[1],
       },
     ],
+    deliverables: {
+      gtm_guide:
+        '# GTM Strategy Guide — Hook A/B\n\n' +
+        '2 variants cleared scoring. Highest neural score: 81.2.\n\n' +
+        '## Per-Variant Recommendations\n\n' +
+        '### Variant 1 — score 81.2\n' +
+        '- **Platform:** TikTok\n' +
+        '- **Time-slot:** weekday evenings 6–9pm\n' +
+        '- **Audience:** founder-led SaaS buyers\n' +
+        '- **Why:** hook_score=79.4, emotional_resonance=74.0, neural=81.2. ' +
+        'Launch this variant first.\n\n' +
+        '### Variant 2 — score 74.5\n' +
+        '- **Platform:** Instagram Reels\n' +
+        '- **Time-slot:** weekend mornings 9–11am\n' +
+        '- **Audience:** operators, 30–45\n\n' +
+        '## Overarching Campaign Insights\n\n' +
+        '1. **Lead with the strongest hook.** Variant 1 should launch first.\n' +
+        '2. **Sequence by platform fit.** TikTok → Reels → Shorts in the ' +
+        'first 72h.\n' +
+        '3. **Retire monotone variants fast.** Drop anything that stalls ' +
+        'before 3 iterations.\n',
+      sop_doc:
+        '# Campaign SOP — Hook A/B\n\n' +
+        '## 1. Brand Voice\n- Tone: confident, warm, direct\n\n' +
+        '## 2. ICP Persona\n- Founder-led SaaS buyer, 28–45\n' +
+        '- Pain point: needs proof before shipping budget\n\n' +
+        '## 3. Winning Variants\n' +
+        '- **Variant 1** (81.2) — archetype=`testimonial`, language=`en`\n' +
+        '- **Variant 2** (74.5) — archetype=`stat_led`, language=`en`\n\n' +
+        '## 4. Edit Primitives That Worked\n' +
+        '- `hook_rewrite` → score 72.1\n' +
+        '- `music_swap` → score 81.2\n\n' +
+        '## 5. Tools Used\n- generate_video, score_neuropeer, edit_variant\n',
+      strategy_summary:
+        '2 variants shipped. Highest: 81.2. Launch V1 on TikTok first.',
+      generated_at: '2026-04-11T10:00:00Z',
+    },
   },
   {
     id: 'campaign-pacing',

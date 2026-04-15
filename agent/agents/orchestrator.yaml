@@ -5,7 +5,7 @@ description: |
   Manages the generate → score → edit loop until a variant passes
   the score threshold or the loop hits max iterations.
 
-model: claude-opus-4-6
+model: z-ai/glm-4.6-flash
 max_iterations: 20
 
 tools:

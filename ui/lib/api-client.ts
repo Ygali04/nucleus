@@ -14,6 +14,13 @@ export interface CampaignGraph {
   edges: GraphEdgeMeta[];
 }
 
+export interface CampaignDeliverables {
+  gtm_guide?: string; // markdown
+  sop_doc?: string; // markdown
+  strategy_summary?: string;
+  generated_at?: string;
+}
+
 export interface Campaign {
   id: string;
   archetype: string;
@@ -25,6 +32,7 @@ export interface Campaign {
   updated_at: string;
   last_executed_at: string | null;
   last_job_id: string | null;
+  deliverables?: CampaignDeliverables | null;
 }
 
 export interface CampaignCreate {
@@ -40,6 +48,7 @@ export interface CampaignPatch {
   graph?: CampaignGraph;
   brief?: Record<string, unknown> | null;
   status?: string;
+  deliverables?: CampaignDeliverables | null;
 }
 
 export interface CampaignExecuteResponse {

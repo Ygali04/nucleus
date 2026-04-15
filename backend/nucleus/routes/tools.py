@@ -11,7 +11,9 @@ from nucleus.tools.clip_ffmpeg import clip_ffmpeg
 from nucleus.tools.compose_remotion import compose_remotion
 from nucleus.tools.edit_variant import edit_variant
 from nucleus.tools.generate_audio import generate_audio
+from nucleus.tools.generate_gtm_strategy import generate_gtm_strategy
 from nucleus.tools.generate_music import generate_music
+from nucleus.tools.generate_sop import generate_sop
 from nucleus.tools.generate_video import generate_video
 from nucleus.tools.run_comfyui_workflow import run_comfyui_workflow
 from nucleus.providers import comfyui_workflows
@@ -26,8 +28,12 @@ from nucleus.tools.schemas import (
     EditVariantResponse,
     GenerateAudioRequest,
     GenerateAudioResponse,
+    GenerateGtmStrategyRequest,
+    GenerateGtmStrategyResponse,
     GenerateMusicRequest,
     GenerateMusicResponse,
+    GenerateSopRequest,
+    GenerateSopResponse,
     GenerateVideoRequest,
     GenerateVideoResponse,
     RunComfyUIWorkflowRequest,
@@ -86,6 +92,20 @@ async def tool_run_comfyui_workflow(
     req: RunComfyUIWorkflowRequest,
 ) -> RunComfyUIWorkflowResponse:
     return await run_comfyui_workflow(req)
+
+
+@router.post(
+    "/generate_gtm_strategy", response_model=GenerateGtmStrategyResponse
+)
+async def tool_generate_gtm_strategy(
+    req: GenerateGtmStrategyRequest,
+) -> GenerateGtmStrategyResponse:
+    return await generate_gtm_strategy(req)
+
+
+@router.post("/generate_sop", response_model=GenerateSopResponse)
+async def tool_generate_sop(req: GenerateSopRequest) -> GenerateSopResponse:
+    return await generate_sop(req)
 
 
 @router.post("/build_workflow", response_model=BuildWorkflowResponse)
