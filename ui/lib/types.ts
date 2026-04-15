@@ -331,11 +331,27 @@ export type CampaignArchetype =
 
 export type CampaignStatus = 'idle' | 'running' | 'scored' | 'failed';
 
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+}
+
 export interface CampaignBrief {
   goal?: string;
   audience?: string;
   tone?: string;
   notes?: string;
+  description?: string;
+  threshold?: number;       // neural score threshold, 50-95, default 72
+  maxIterations?: number;   // max iterations per variant, default 3
+  variantsRequired?: number; // variants required to pass, default 3
+  costCeiling?: number;     // USD cost ceiling per campaign, default 5
+  rufloAutopilot?: boolean; // default true
+  chatHistory?: ChatMessage[];
+  // Legacy / backend-aligned field (kept for compatibility with existing writes)
+  ruflo_autopilot?: boolean;
 }
 
 // --- NeuroPeer report types (mirror backend/models/schemas.py) --------------
