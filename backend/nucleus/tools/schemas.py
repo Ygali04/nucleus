@@ -137,6 +137,43 @@ class RunComfyUIWorkflowResponse(BaseModel):
     duration_s: float
 
 
+# --- generate_storyboard (FLUX-Kontext text-to-image) ---
+
+
+class GenerateStoryboardRequest(BaseModel):
+    prompt: str
+    frame_count: int = Field(default=4, ge=1, le=16)
+    aspect_ratio: str = "16:9"
+    style_hints: str | None = None
+    job_id: str | None = None
+
+
+class GenerateStoryboardResponse(BaseModel):
+    image_urls: list[str]
+    cost_usd: float
+    provider: str = "flux_kontext_dev"
+
+
+# --- generate_image (single-frame t2i / i2i via FLUX-Kontext) ---
+
+
+ImageOperation = Literal["text_to_image", "upscale", "theme_transition", "style_transfer"]
+
+
+class GenerateImageRequest(BaseModel):
+    prompt: str
+    reference_image_url: str | None = None
+    operation: ImageOperation = "text_to_image"
+    strength: float = Field(default=0.7, ge=0.0, le=1.0)
+    job_id: str | None = None
+
+
+class GenerateImageResponse(BaseModel):
+    image_url: str
+    cost_usd: float
+    provider: str = "flux_kontext_dev"
+
+
 # --- build_workflow (Ruflo workflow translator endpoint) ---
 
 

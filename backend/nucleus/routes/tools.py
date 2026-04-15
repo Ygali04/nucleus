@@ -11,7 +11,9 @@ from nucleus.tools.clip_ffmpeg import clip_ffmpeg
 from nucleus.tools.compose_remotion import compose_remotion
 from nucleus.tools.edit_variant import edit_variant
 from nucleus.tools.generate_audio import generate_audio
+from nucleus.tools.generate_image import generate_image
 from nucleus.tools.generate_music import generate_music
+from nucleus.tools.generate_storyboard import generate_storyboard
 from nucleus.tools.generate_video import generate_video
 from nucleus.tools.run_comfyui_workflow import run_comfyui_workflow
 from nucleus.providers import comfyui_workflows
@@ -26,8 +28,12 @@ from nucleus.tools.schemas import (
     EditVariantResponse,
     GenerateAudioRequest,
     GenerateAudioResponse,
+    GenerateImageRequest,
+    GenerateImageResponse,
     GenerateMusicRequest,
     GenerateMusicResponse,
+    GenerateStoryboardRequest,
+    GenerateStoryboardResponse,
     GenerateVideoRequest,
     GenerateVideoResponse,
     RunComfyUIWorkflowRequest,
@@ -86,6 +92,21 @@ async def tool_run_comfyui_workflow(
     req: RunComfyUIWorkflowRequest,
 ) -> RunComfyUIWorkflowResponse:
     return await run_comfyui_workflow(req)
+
+
+@router.post("/generate_storyboard", response_model=GenerateStoryboardResponse)
+async def tool_generate_storyboard(
+    req: GenerateStoryboardRequest,
+) -> GenerateStoryboardResponse:
+    return await generate_storyboard(req)
+
+
+@router.post("/generate_image", response_model=GenerateImageResponse)
+async def tool_generate_image(req: GenerateImageRequest) -> GenerateImageResponse:
+    try:
+        return await generate_image(req)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/build_workflow", response_model=BuildWorkflowResponse)

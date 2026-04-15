@@ -29,9 +29,20 @@ from nucleus.storage.s3 import (
     upload_file,
 )
 
-Kind = Literal["raw", "composed", "edited", "delivered", "audio", "music"]
+Kind = Literal[
+    "raw", "composed", "edited", "delivered", "audio", "music", "storyboard", "image"
+]
 _VALID_KINDS: frozenset[str] = frozenset(
-    {"raw", "composed", "edited", "delivered", "audio", "music"}
+    {
+        "raw",
+        "composed",
+        "edited",
+        "delivered",
+        "audio",
+        "music",
+        "storyboard",
+        "image",
+    }
 )
 
 
