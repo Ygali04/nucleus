@@ -199,6 +199,10 @@ class CampaignRow(Base):
     # Job enqueued by the most recent /execute call, so /reports can walk
     # candidates -> iterations without a campaign_id FK on existing tables.
     last_job_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # GTM guide + SOP doc produced by the strategist agent on delivery.
+    deliverables_json: Mapped[dict | None] = mapped_column(
+        JSON, nullable=True
+    )
 
 
 class EventRow(Base):

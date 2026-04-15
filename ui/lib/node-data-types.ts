@@ -41,11 +41,11 @@ export const NODE_IO_MAP: Record<
 > = {
   brand_kb: { inputs: [], outputs: ['brand-kb'] },
   icp: { inputs: [], outputs: ['icp'] },
-  video_gen: { inputs: ['brand-kb', 'icp', 'image'], outputs: ['video'] },
-  audio_gen: { inputs: ['brand-kb', 'icp'], outputs: ['audio'] },
   source_video: { inputs: [], outputs: ['video'] },
   storyboard: { inputs: ['brand-kb', 'icp'], outputs: ['image'] },
   image_edit: { inputs: ['image'], outputs: ['image'] },
+  video_gen: { inputs: ['brand-kb', 'icp', 'image'], outputs: ['video'] },
+  audio_gen: { inputs: ['brand-kb', 'icp'], outputs: ['audio'] },
   // composition produces a rendered mp4 — its output is `video` so it can
   // attach cleanly to scoring / editor / delivery video sockets without a
   // dedicated "composition"-typed socket.
@@ -56,9 +56,6 @@ export const NODE_IO_MAP: Record<
   // and emits an edited video.
   editor: { inputs: ['video', 'report'], outputs: ['video'] },
   delivery: { inputs: ['video', 'report'], outputs: ['delivery'] },
-  source_video: { inputs: [], outputs: ['video'] },
-  storyboard: { inputs: ['brand-kb', 'icp'], outputs: ['video'] },
-  image_edit: { inputs: ['video'], outputs: ['video'] },
   group: { inputs: [], outputs: [] },
 };
 

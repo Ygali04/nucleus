@@ -16,13 +16,15 @@ export function ScoringNode({ id, data, selected }: NodeProps) {
   const d = (node.data ?? {}) as {
     neuralScore?: number | null;
     threshold?: number;
+    thresholdOverride?: number | null;
     topMetrics?: Array<{ name: string; score: number }>;
     iterationCount?: number;
     scoreDelta?: number | null;
     bypassed?: boolean;
   };
   const score = d.neuralScore ?? 0;
-  const threshold = d.threshold ?? 72;
+  const threshold =
+    (d.thresholdOverride != null ? d.thresholdOverride : d.threshold) ?? 72;
   const color = scoreColor(score, threshold);
   const ruflo = isRufloAdded(node.data);
 
@@ -48,11 +50,21 @@ export function ScoringNode({ id, data, selected }: NodeProps) {
             <Brain className="h-3 w-3 text-[var(--color-primary)]" />
             <span>Neural Score</span>
           </div>
-          {d.iterationCount ? (
-            <span className="rounded bg-[var(--color-primary-soft,#eef2ff)] px-1.5 py-0.5 text-[10px] text-[var(--color-primary)]">
-              iter {d.iterationCount}
-            </span>
-          ) : null}
+          <div className="flex items-center gap-1">
+            {d.thresholdOverride != null ? (
+              <span
+                title="Threshold override"
+                className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-mono text-amber-700"
+              >
+                T: {Number(d.thresholdOverride).toFixed(0)}
+              </span>
+            ) : null}
+            {d.iterationCount ? (
+              <span className="rounded bg-[var(--color-primary-soft,#eef2ff)] px-1.5 py-0.5 text-[10px] text-[var(--color-primary)]">
+                iter {d.iterationCount}
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <div className="mb-2 flex items-center gap-3">

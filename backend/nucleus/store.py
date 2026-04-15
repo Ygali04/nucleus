@@ -314,6 +314,11 @@ async def list_iterations(candidate_id: str) -> list[Iteration]:
 # ---------------------------------------------------------------------------
 
 def _row_to_campaign(row: CampaignRow) -> Campaign:
+    from nucleus.models import CampaignDeliverables
+
+    deliverables = None
+    if getattr(row, "deliverables_json", None):
+        deliverables = CampaignDeliverables(**dict(row.deliverables_json))
     return Campaign(
         id=row.id,
         archetype=row.archetype,
@@ -325,6 +330,7 @@ def _row_to_campaign(row: CampaignRow) -> Campaign:
         updated_at=row.updated_at,
         last_executed_at=row.last_executed_at,
         last_job_id=row.last_job_id,
+        deliverables=deliverables,
     )
 
 
@@ -376,7 +382,15 @@ async def delete_campaign(campaign_id: str) -> bool:
 
 async def update_campaign(campaign_id: str, patch: dict) -> Campaign:
     """Apply a partial update. Unknown keys are ignored."""
-    allowed = {"archetype", "brand_name", "graph", "brief", "status", "last_job_id"}
+    allowed = {
+        "archetype",
+        "brand_name",
+        "graph",
+        "brief",
+        "status",
+        "last_job_id",
+        "deliverables",
+    }
     async with AsyncSessionLocal() as session:
         row = await session.get(CampaignRow, campaign_id)
         if row is None:
@@ -388,6 +402,11 @@ async def update_campaign(campaign_id: str, patch: dict) -> Campaign:
                 row.graph_json = dict(value)
             elif key == "brief":
                 row.brief_json = dict(value)
+            elif key == "deliverables":
+                # Accept CampaignDeliverables pydantic or plain dict.
+                row.deliverables_json = (
+                    value.model_dump(mode="json") if hasattr(value, "model_dump") else dict(value)
+                )
             else:
                 setattr(row, key, value)
         if "last_executed_at" in patch and patch["last_executed_at"] is not None:
