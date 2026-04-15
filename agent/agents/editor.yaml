@@ -1,7 +1,7 @@
 name: editor
 role: worker
 description: Applies targeted edits to underperforming variants based on neural reports.
-model: claude-sonnet-4-6
+model: z-ai/glm-4.6-flash
 max_iterations: 5
 tools:
   - edit_variant
