@@ -62,6 +62,42 @@ export NUCLEUS_USE_DIRECT_SDK=true
 `MagiHuman` stays on direct-SDK regardless — there is no ComfyUI-fal-API
 node for it as of 2026-04-12.
 
+## Enabling NeuroPeer API key auth
+
+By default, NeuroPeer's server is open. To require API keys (recommended for
+production), drop this middleware into your NeuroPeer FastAPI backend at
+`backend/api/main.py`:
+
+```python
+from fastapi import HTTPException, Request
+from fastapi.middleware.base import BaseHTTPMiddleware
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, *, allowed_keys: set[str]):
+        super().__init__(app)
+        self.allowed = allowed_keys
+
+    async def dispatch(self, request: Request, call_next):
+        # Skip health check
+        if request.url.path in ("/health", "/api/v1/health"):
+            return await call_next(request)
+        key = request.headers.get("X-API-Key") or request.query_params.get("api_key")
+        if not key or key not in self.allowed:
+            raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key")
+        return await call_next(request)
+
+# Use it
+keys = set(os.environ.get("NEUROPEER_API_KEYS", "").split(",")) - {""}
+if keys:
+    app.add_middleware(APIKeyMiddleware, allowed_keys=keys)
+```
+
+Set `NEUROPEER_API_KEYS=key1,key2,key3` (comma-separated) in the NeuroPeer
+backend's env. On the Nucleus side, set `NEUROPEER_API_KEY=<one-of-those>`.
+
+A future enhancement would add a `/keys/issue` admin endpoint + a simple
+database-backed key registry. See FOLLOWUPS.md.
+
 ## 3. Bring up the Nucleus stack
 
 ```bash

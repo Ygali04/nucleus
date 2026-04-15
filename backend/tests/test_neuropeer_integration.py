@@ -375,6 +375,62 @@ async def test_ws_uri_prefers_absolute_server_url(monkeypatch) -> None:
 
 
 # ---------------------------------------------------------------------------
+# API key auth
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_api_key_header_sent_when_env_set(monkeypatch) -> None:
+    monkeypatch.setenv("NEUROPEER_API_KEY", "secret-key-123")
+    job_id = _job_id()
+    captured: list[httpx.Request] = []
+    transport = httpx.MockTransport(
+        _make_http_handler(
+            job_id,
+            captured_requests=captured,
+            analysis_payload=_fake_analysis_result(job_id, "https://cdn/x.mp4"),
+        )
+    )
+    async with NeuroPeerClient(
+        base_url="http://neuropeer.test", transport=transport
+    ) as client:
+        await client.submit("https://cdn/x.mp4")
+        # WS URI mirrors the key as ?api_key=... for FastAPI WS auth.
+        ws_uri = client._ws_uri(job_id)
+
+    assert captured, "expected at least one captured HTTP request"
+    for req in captured:
+        assert req.headers.get("X-API-Key") == "secret-key-123"
+        assert "Authorization" not in req.headers
+    assert ws_uri.endswith("?api_key=secret-key-123")
+
+
+@pytest.mark.asyncio
+async def test_no_auth_header_when_env_unset(monkeypatch) -> None:
+    monkeypatch.delenv("NEUROPEER_API_KEY", raising=False)
+    job_id = _job_id()
+    captured: list[httpx.Request] = []
+    transport = httpx.MockTransport(
+        _make_http_handler(
+            job_id,
+            captured_requests=captured,
+            analysis_payload=_fake_analysis_result(job_id, "https://cdn/x.mp4"),
+        )
+    )
+    async with NeuroPeerClient(
+        base_url="http://neuropeer.test", transport=transport
+    ) as client:
+        await client.submit("https://cdn/x.mp4")
+        ws_uri = client._ws_uri(job_id)
+
+    assert captured
+    for req in captured:
+        assert "X-API-Key" not in req.headers
+        assert "Authorization" not in req.headers
+    assert "api_key=" not in ws_uri
+
+
+# ---------------------------------------------------------------------------
 # End-to-end through the score_neuropeer tool
 # ---------------------------------------------------------------------------
 
