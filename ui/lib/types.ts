@@ -159,6 +159,9 @@ export type GraphNodeKind =
   | 'brand_kb'
   | 'icp'
   | 'delivery'
+  | 'source_video'
+  | 'storyboard'
+  | 'image_edit'
   | 'group';
 
 export type NodeExecutionStatus =

@@ -1,7 +1,9 @@
 'use client';
 
+import { getDefaultSystemPrompt } from '@/lib/system-prompt-defaults';
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
+import { SystemPromptEditor } from './SystemPromptEditor';
 import { Field, RadioRow, Slider } from './atoms';
 import { useNodeDraft } from './useNodeDraft';
 
@@ -16,6 +18,7 @@ interface ScoringDraft extends Record<string, unknown> {
   threshold: number;
   contentType: (typeof CONTENT_TYPES)[number];
   report?: ScoreReport;
+  systemPrompt?: string;
 }
 
 const DEFAULT: ScoringDraft = {
@@ -88,6 +91,12 @@ export function ScoringModal({
             onChange={(value) => patch({ contentType: value })}
           />
         </Field>
+
+        <SystemPromptEditor
+          defaultPrompt={getDefaultSystemPrompt('scoring', draft)}
+          value={draft.systemPrompt}
+          onChange={(v) => patch({ systemPrompt: v })}
+        />
 
         {report ? (
           <Field label="Latest report">

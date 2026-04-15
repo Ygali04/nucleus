@@ -23,6 +23,9 @@ const KIND_LABEL: Record<GraphNodeKind, string> = {
   brand_kb: 'Brand KB',
   icp: 'ICP',
   delivery: 'Delivery',
+  source_video: 'Source Video',
+  storyboard: 'Storyboard',
+  image_edit: 'Image Edit',
 };
 
 interface SwapTypeDropdownProps {

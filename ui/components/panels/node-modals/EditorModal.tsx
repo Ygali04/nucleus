@@ -11,8 +11,10 @@ import {
   Timer,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { getDefaultSystemPrompt } from '@/lib/system-prompt-defaults';
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
+import { SystemPromptEditor } from './SystemPromptEditor';
 import { Field, RadioRow, TextInput, Textarea } from './atoms';
 import { useNodeDraft } from './useNodeDraft';
 
@@ -88,6 +90,7 @@ interface EditorDraft extends Record<string, unknown> {
   targetEndS: number;
   autoTarget: boolean;
   edit_prompt: string;
+  systemPrompt?: string;
 }
 
 const DEFAULT: EditorDraft = {
@@ -197,6 +200,12 @@ export function EditorModal({
             onChange={(e) => patch({ edit_prompt: e.target.value })}
           />
         </Field>
+
+        <SystemPromptEditor
+          defaultPrompt={getDefaultSystemPrompt('editor', draft)}
+          value={draft.systemPrompt}
+          onChange={(v) => patch({ systemPrompt: v })}
+        />
       </div>
     </NodeModalShell>
   );

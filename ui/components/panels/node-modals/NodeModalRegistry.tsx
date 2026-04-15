@@ -8,7 +8,10 @@ import { CompositionModal } from './CompositionModal';
 import { DeliveryModal } from './DeliveryModal';
 import { EditorModal } from './EditorModal';
 import { ICPModal } from './ICPModal';
+import { ImageEditModal } from './ImageEditModal';
 import { ScoringModal } from './ScoringModal';
+import { SourceVideoModal } from './SourceVideoModal';
+import { StoryboardModal } from './StoryboardModal';
 import { VideoGenModal } from './VideoGenModal';
 
 const OWNED_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>([
@@ -20,6 +23,9 @@ const OWNED_KINDS: ReadonlySet<GraphNodeKind> = new Set<GraphNodeKind>([
   'delivery',
   'brand_kb',
   'icp',
+  'source_video',
+  'storyboard',
+  'image_edit',
 ]);
 
 /**
@@ -93,6 +99,12 @@ export function NodeModalRegistry() {
           nodeId={foundNode.id}
         />
       );
+    case 'source_video':
+      return <SourceVideoModal {...common} />;
+    case 'storyboard':
+      return <StoryboardModal {...common} />;
+    case 'image_edit':
+      return <ImageEditModal {...common} />;
     default:
       return null;
   }

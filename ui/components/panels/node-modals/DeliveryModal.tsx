@@ -1,7 +1,9 @@
 'use client';
 
+import { getDefaultSystemPrompt } from '@/lib/system-prompt-defaults';
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
+import { SystemPromptEditor } from './SystemPromptEditor';
 import { Field, TextInput } from './atoms';
 import { useNodeDraft } from './useNodeDraft';
 
@@ -13,6 +15,7 @@ interface DeliveryDraft extends Record<string, unknown> {
   cdnUrl: string;
   email: string;
   webhookUrl: string;
+  systemPrompt?: string;
 }
 
 const DEFAULT: DeliveryDraft = {
@@ -123,6 +126,12 @@ export function DeliveryModal({
             onChange={(e) => patch({ webhookUrl: e.target.value })}
           />
         </Field>
+
+        <SystemPromptEditor
+          defaultPrompt={getDefaultSystemPrompt('delivery', draft)}
+          value={draft.systemPrompt}
+          onChange={(v) => patch({ systemPrompt: v })}
+        />
       </div>
     </NodeModalShell>
   );

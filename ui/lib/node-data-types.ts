@@ -50,6 +50,9 @@ export const NODE_IO_MAP: Record<
   // and emits an edited video.
   editor: { inputs: ['video', 'report'], outputs: ['video'] },
   delivery: { inputs: ['video', 'report'], outputs: ['delivery'] },
+  source_video: { inputs: [], outputs: ['video'] },
+  storyboard: { inputs: ['brand-kb', 'icp'], outputs: ['video'] },
+  image_edit: { inputs: ['video'], outputs: ['video'] },
   group: { inputs: [], outputs: [] },
 };
 

@@ -1,8 +1,10 @@
 'use client';
 
 import { Upload } from 'lucide-react';
+import { getDefaultSystemPrompt } from '@/lib/system-prompt-defaults';
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
+import { SystemPromptEditor } from './SystemPromptEditor';
 import { Field, RadioRow, Slider, Textarea } from './atoms';
 import { ProviderCardGrid, type ProviderCard } from './ProviderCardGrid';
 import { useNodeDraft } from './useNodeDraft';
@@ -26,6 +28,7 @@ interface VideoGenDraft extends Record<string, unknown> {
   durationS: number;
   aspect: (typeof ASPECTS)[number];
   referenceImageUrl: string | null;
+  systemPrompt?: string;
 }
 
 export interface VideoGenModalProps {
@@ -133,6 +136,12 @@ export function VideoGenModal({
             onChange={(url) => patch({ referenceImageUrl: url })}
           />
         </Field>
+
+        <SystemPromptEditor
+          defaultPrompt={getDefaultSystemPrompt('video_gen', draft)}
+          value={draft.systemPrompt}
+          onChange={(v) => patch({ systemPrompt: v })}
+        />
       </div>
     </NodeModalShell>
   );
