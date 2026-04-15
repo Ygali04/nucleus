@@ -331,11 +331,20 @@ export type CampaignArchetype =
 
 export type CampaignStatus = 'idle' | 'running' | 'scored' | 'failed';
 
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+}
+
 export interface CampaignBrief {
   goal?: string;
   audience?: string;
   tone?: string;
   notes?: string;
+  description?: string;
+  chat_history?: ChatMessage[];
 }
 
 // --- NeuroPeer report types (mirror backend/models/schemas.py) --------------

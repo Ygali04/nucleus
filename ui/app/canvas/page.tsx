@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { ArchitectureCanvas } from '@/components/canvas/ArchitectureCanvas';
+import { CanvasChat } from '@/components/canvas/CanvasChat';
 import { CanvasToolbar } from '@/components/canvas/CanvasToolbar';
 import { useCampaignsStore } from '@/store/campaigns-store';
 
@@ -42,6 +43,7 @@ function CanvasView() {
         initialEdges={campaign.graph.edges}
       />
       <CanvasToolbar campaign={campaign} />
+      <CanvasChat campaignId={campaignId} />
     </div>
   );
 }

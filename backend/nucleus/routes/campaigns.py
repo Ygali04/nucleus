@@ -8,11 +8,14 @@ and hands it off to the existing Celery worker.
 
 from __future__ import annotations
 
+import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
 from nucleus.events import publish_event
+from nucleus.tools.schemas import ChatRequest, ChatResponse
 from nucleus.models import (
     BriefRequest,
     Campaign,
@@ -178,6 +181,39 @@ async def execute_campaign(campaign_id: str) -> CampaignExecuteResponse:
     run_job_task.delay(job.id)
 
     return CampaignExecuteResponse(job_id=job.id, websocket_url=f"/ws/job/{job.id}")
+
+
+@router.post("/campaigns/{campaign_id}/chat", response_model=ChatResponse)
+async def send_chat(campaign_id: str, req: ChatRequest) -> ChatResponse:
+    """User sends a message -> forwarded to Ruflo. Ruflo replies via event bus."""
+    content = req.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="content must not be empty")
+
+    try:
+        campaign = await get_campaign(campaign_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    message = {
+        "id": str(uuid.uuid4()),
+        "role": "user",
+        "content": content,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    brief = dict(campaign.brief or {})
+    history = list(brief.get("chat_history") or [])
+    history.append(message)
+    brief["chat_history"] = history
+    await update_campaign(campaign_id, {"brief": brief})
+
+    await publish_event(
+        campaign_id,
+        "chat.user_message",
+        {"campaign_id": campaign_id, "message": message},
+    )
+    return ChatResponse(status="queued")
 
 
 @router.get("/campaigns/{campaign_id}/reports", response_model=list[CampaignReport])

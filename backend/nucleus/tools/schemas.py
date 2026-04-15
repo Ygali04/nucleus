@@ -169,3 +169,13 @@ class BuildWorkflowResponse(BaseModel):
     kind: Literal["video", "audio", "music", "edit"]
     subtype: str
     workflow: dict
+
+
+# --- chat (Ruflo canvas chat) ---
+
+class ChatRequest(BaseModel):
+    content: str
+
+
+class ChatResponse(BaseModel):
+    status: Literal["queued"] = "queued"
