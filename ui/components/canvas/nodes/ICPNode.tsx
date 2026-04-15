@@ -35,7 +35,7 @@ export function ICPNode({ id, data, selected }: NodeProps) {
     : null;
 
   return (
-    <NodeContextMenuWrapper nodeId={id} kind="icp">
+    <NodeContextMenuWrapper nodeId={id} kind="icp" nodeData={node.data}>
       <div
         className={`gs-card relative min-w-[208px] max-w-[208px] rounded-xl border bg-white px-3 py-3 ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{

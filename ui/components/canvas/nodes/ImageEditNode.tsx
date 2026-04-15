@@ -40,7 +40,7 @@ export function ImageEditNode({ id, data, selected }: NodeProps) {
   const hasOne = !!before || !!after;
 
   return (
-    <NodeContextMenuWrapper nodeId={id} kind="image_edit">
+    <NodeContextMenuWrapper nodeId={id} kind="image_edit" nodeData={node.data}>
       <div
         className={`gs-card relative min-w-[224px] max-w-[224px] rounded-xl border bg-white px-3 py-3 transition ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{

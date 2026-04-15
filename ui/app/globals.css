@@ -16,6 +16,9 @@
   --color-success: #5a9a5a;
   --color-warning: #c6923f;
   --color-error: #e05c4b;
+  /* Ruflo ghost-node / pending-approval accent. Used by nodes + edges that
+     the agent has suggested but the user has not approved yet. */
+  --color-accent-suggested: #8b5cf6;
 
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -126,6 +129,40 @@ a {
 
 .nucleus-ruflo-arrival {
   animation: ruflo-arrival 1.5s ease-out 1;
+}
+
+/* ---------------------------------------------------------------------------
+ * Ghost-node / pending-approval UX for Ruflo suggestions. A node wrapped with
+ * the `.nucleus-ghost-pending` class renders faded with a pulsing violet ring
+ * until the user approves (strips the class) or rejects (removes the node
+ * entirely). Keep the keyframes here so every node kind picks them up.
+ * ------------------------------------------------------------------------- */
+@keyframes nucleus-pulse {
+  0%, 100% {
+    opacity: 0.55;
+    box-shadow:
+      0 0 0 2px rgba(139, 92, 246, 0.7),
+      0 0 24px rgba(139, 92, 246, 0.45);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow:
+      0 0 0 2px rgba(139, 92, 246, 0.9),
+      0 0 36px rgba(139, 92, 246, 0.6);
+  }
+}
+
+.nucleus-ghost-pending {
+  /* Apply pulse to the wrapper; the inner node card stays structurally intact
+     so approval can atomically swap to the normal style by dropping the class. */
+  animation: nucleus-pulse 1.6s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+
+.nucleus-ghost-pending-edge {
+  stroke: var(--color-accent-suggested) !important;
+  stroke-dasharray: 6 4;
+  animation: nucleus-pulse 1.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

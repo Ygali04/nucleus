@@ -33,7 +33,7 @@ export function StoryboardNode({ id, data, selected }: NodeProps) {
   const promptPreview = (d.prompt ?? '').slice(0, 60);
 
   return (
-    <NodeContextMenuWrapper nodeId={id} kind="storyboard">
+    <NodeContextMenuWrapper nodeId={id} kind="storyboard" nodeData={node.data}>
       <div
         className={`gs-card relative min-w-[224px] max-w-[224px] rounded-xl border bg-white px-3 py-3 transition ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{

@@ -171,6 +171,45 @@ export class NucleusAPIClient {
     if (!res.ok) throw new Error(`sendChatMessage failed: ${res.status}`);
   }
 
+  /**
+   * Approve a Ruflo ghost-node suggestion. Backend materializes the pending
+   * node as a real graph node and continues execution.
+   */
+  async approveSuggestion(
+    campaignId: string,
+    suggestionId: string,
+  ): Promise<void> {
+    const res = await fetch(
+      `${this.baseUrl}/api/v1/campaigns/${campaignId}/suggestions/${suggestionId}/approve`,
+      { method: 'POST' },
+    );
+    if (!res.ok && res.status !== 202) {
+      throw new Error(`approveSuggestion failed: ${res.status}`);
+    }
+  }
+
+  /**
+   * Reject a Ruflo ghost-node suggestion, with optional free-text feedback that
+   * Ruflo uses to pick a different node.
+   */
+  async rejectSuggestion(
+    campaignId: string,
+    suggestionId: string,
+    feedback?: string,
+  ): Promise<void> {
+    const res = await fetch(
+      `${this.baseUrl}/api/v1/campaigns/${campaignId}/suggestions/${suggestionId}/reject`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback: feedback ?? null }),
+      },
+    );
+    if (!res.ok && res.status !== 202) {
+      throw new Error(`rejectSuggestion failed: ${res.status}`);
+    }
+  }
+
   async listCampaignReports(id: string): Promise<CampaignReport[]> {
     const res = await fetch(`${this.baseUrl}/api/v1/campaigns/${id}/reports`);
     if (!res.ok) throw new Error(`listCampaignReports failed: ${res.status}`);

@@ -54,14 +54,27 @@ export function useCanvasChat(campaignId: string | null): UseCanvasChatResult {
       } else if (ev.eventType === 'chat.assistant_message') {
         setIsThinking(false);
         const payload = ev.payload ?? {};
-        const msg = (payload.message ?? payload) as Partial<ChatMessage>;
+        const rawMsg = (payload.message ?? payload) as Record<string, unknown>;
+        const msg = rawMsg as Partial<ChatMessage> & {
+          suggestion_id?: string;
+          requires_approval?: boolean;
+        };
         const content = typeof msg.content === 'string' ? msg.content : '';
         if (!content) continue;
+        // The approval metadata may live on either the inner `message` or the
+        // outer payload — accept both so the backend has flexibility.
+        const suggestionId =
+          msg.suggestion_id ?? (payload.suggestion_id as string | undefined);
+        const requiresApproval =
+          msg.requires_approval ??
+          (payload.requires_approval as boolean | undefined);
         appendChatMessage(campaignId, {
           id: msg.id ?? genId(),
           role: 'assistant',
           content,
           timestamp: msg.timestamp ?? ev.timestamp,
+          suggestion_id: suggestionId,
+          requires_approval: requiresApproval,
         });
       }
     }

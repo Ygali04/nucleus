@@ -345,7 +345,15 @@ function FlowCanvas({
         onReconnectStart={onReconnectStart}
         onReconnectEnd={onReconnectEnd}
         onNodeClick={(_, node) => selectNode(node.id)}
-        onNodeDoubleClick={(_, node) => openNodeModal(node.id)}
+        onNodeDoubleClick={(_, node) => {
+          // Block the edit modal for Ruflo ghost-suggestion nodes until the
+          // user explicitly approves. Reading `pendingApproval` off the node
+          // data bag mirrors what `PendingApprovalOverlay` uses on the card.
+          const nodeData = (node.data as { data?: { pendingApproval?: string } })
+            ?.data;
+          if (nodeData?.pendingApproval) return;
+          openNodeModal(node.id);
+        }}
         defaultViewport={viewport}
         onMoveEnd={(_, nextViewport) => {
           setViewport({
