@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NeuroPeerReportView } from '@/components/reports/NeuroPeerReportView';
 import { VariantComparisonView } from '@/components/reports/VariantComparisonView';
+import { DeliveryReport } from '@/components/reports/DeliveryReport';
+import type { CampaignDeliverables } from '@/lib/api-client';
 import {
   NEUROPEER_CAMPAIGN_FIXTURES,
   type ReportCampaignFixture,
 } from '@/fixtures/neuropeer-reports';
 
-type ViewMode = 'single' | 'compare';
+type ViewMode = 'single' | 'compare' | 'delivery';
 
 export default function ReportsPage() {
   // TODO: replace with real campaigns/variants once backend /reports flows
@@ -57,6 +59,11 @@ export default function ReportsPage() {
   }, [activeCampaign, compareIds]);
 
   const canCompare = scoredVariants.length >= 2;
+  const activeDeliverables: CampaignDeliverables | null =
+    activeCampaign?.deliverables ?? null;
+  const hasDelivery =
+    !!activeDeliverables &&
+    !!(activeDeliverables.gtm_guide || activeDeliverables.sop_doc);
 
   const toggleCompareId = (id: string) => {
     setCompareIds((prev) =>
@@ -109,19 +116,19 @@ export default function ReportsPage() {
           </select>
         </label>
 
-        {canCompare ? (
-          <div className="ml-auto inline-flex rounded-md border border-black/10 bg-white p-0.5 text-xs">
-            <button
-              type="button"
-              onClick={() => setViewMode('single')}
-              className={`rounded px-3 py-1 transition ${
-                viewMode === 'single'
-                  ? 'bg-[var(--color-dark)] text-white'
-                  : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]'
-              }`}
-            >
-              Single
-            </button>
+        <div className="ml-auto inline-flex rounded-md border border-black/10 bg-white p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => setViewMode('single')}
+            className={`rounded px-3 py-1 transition ${
+              viewMode === 'single'
+                ? 'bg-[var(--color-dark)] text-white'
+                : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]'
+            }`}
+          >
+            Single
+          </button>
+          {canCompare ? (
             <button
               type="button"
               onClick={() => setViewMode('compare')}
@@ -133,11 +140,30 @@ export default function ReportsPage() {
             >
               Compare
             </button>
-          </div>
-        ) : null}
+          ) : null}
+          {hasDelivery ? (
+            <button
+              type="button"
+              onClick={() => setViewMode('delivery')}
+              className={`rounded px-3 py-1 transition ${
+                viewMode === 'delivery'
+                  ? 'bg-[var(--color-dark)] text-white'
+                  : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]'
+              }`}
+            >
+              Campaign Delivery
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {viewMode === 'single' ? (
+      {viewMode === 'delivery' && hasDelivery && activeCampaign ? (
+        <DeliveryReport
+          campaignId={activeCampaign.id}
+          brandName={activeCampaign.name}
+          deliverables={activeDeliverables!}
+        />
+      ) : viewMode === 'single' ? (
         <>
           <div className="flex flex-wrap gap-2 border-b border-black/8 pb-3">
             {scoredVariants.map((variant) => {

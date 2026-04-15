@@ -314,6 +314,12 @@ async def list_iterations(candidate_id: str) -> list[Iteration]:
 # ---------------------------------------------------------------------------
 
 def _row_to_campaign(row: CampaignRow) -> Campaign:
+    deliverables_raw = getattr(row, "deliverables_json", None)
+    deliverables = None
+    if deliverables_raw:
+        from nucleus.models import CampaignDeliverables
+
+        deliverables = CampaignDeliverables.model_validate(deliverables_raw)
     return Campaign(
         id=row.id,
         archetype=row.archetype,
@@ -325,11 +331,17 @@ def _row_to_campaign(row: CampaignRow) -> Campaign:
         updated_at=row.updated_at,
         last_executed_at=row.last_executed_at,
         last_job_id=row.last_job_id,
+        deliverables=deliverables,
     )
 
 
 async def save_campaign(campaign: Campaign) -> Campaign:
     async with AsyncSessionLocal() as session:
+        deliverables_dict = (
+            campaign.deliverables.model_dump(mode="json")
+            if campaign.deliverables is not None
+            else None
+        )
         await session.merge(
             CampaignRow(
                 id=campaign.id,
@@ -340,6 +352,7 @@ async def save_campaign(campaign: Campaign) -> Campaign:
                 status=campaign.status,
                 last_executed_at=campaign.last_executed_at,
                 last_job_id=campaign.last_job_id,
+                deliverables_json=deliverables_dict,
             )
         )
         await session.commit()
@@ -376,7 +389,15 @@ async def delete_campaign(campaign_id: str) -> bool:
 
 async def update_campaign(campaign_id: str, patch: dict) -> Campaign:
     """Apply a partial update. Unknown keys are ignored."""
-    allowed = {"archetype", "brand_name", "graph", "brief", "status", "last_job_id"}
+    allowed = {
+        "archetype",
+        "brand_name",
+        "graph",
+        "brief",
+        "status",
+        "last_job_id",
+        "deliverables",
+    }
     async with AsyncSessionLocal() as session:
         row = await session.get(CampaignRow, campaign_id)
         if row is None:
@@ -388,6 +409,14 @@ async def update_campaign(campaign_id: str, patch: dict) -> Campaign:
                 row.graph_json = dict(value)
             elif key == "brief":
                 row.brief_json = dict(value)
+            elif key == "deliverables":
+                from nucleus.models import CampaignDeliverables
+
+                if hasattr(value, "model_dump"):
+                    model = value
+                else:
+                    model = CampaignDeliverables.model_validate(value)
+                row.deliverables_json = model.model_dump(mode="json")
             else:
                 setattr(row, key, value)
         if "last_executed_at" in patch and patch["last_executed_at"] is not None:

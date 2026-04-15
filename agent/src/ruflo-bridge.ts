@@ -30,6 +30,7 @@ import {
   type GlmMessage,
 } from "./glm-client.js";
 import { bindToolHandlers, TOOL_REGISTRY } from "../tools/registry.js";
+import { httpToolHandler } from "../tools/handlers/define-tool.js";
 import type { NucleusToolSet } from "../tools/handlers/index.js";
 import type {
   EditType,
@@ -483,6 +484,92 @@ export async function* runSwarm(
       cost_usd: cost,
     });
 
+    // -----------------------------------------------------------------
+    // Strategist: fan out to GTM + SOP tools when the candidate actually
+    // succeeded. Failures are non-fatal — the UI falls back to the empty
+    // state on the Delivery node.
+    // -----------------------------------------------------------------
+    if (
+      decision === "passed_threshold" ||
+      decision === "max_iterations" ||
+      decision === "cost_ceiling"
+    ) {
+      const strategyVariant = {
+        video_url: currentVideoUrl,
+        score: lastScore?.neural_score ?? 0,
+        report: {
+          breakdown: lastScore?.breakdown ?? {},
+          metrics: lastScore?.metrics ?? [],
+          key_moments: lastScore?.key_moments ?? [],
+          attention_curve: lastScore?.attention_curve ?? [],
+          ai_summary: lastScore?.ai_summary,
+        },
+        cost_usd: cost,
+        iteration_count: history.length,
+        icp: candidate_spec.icp,
+        platform: candidate_spec.platform,
+        archetype: candidate_spec.archetype,
+        language: candidate_spec.language,
+      };
+
+      try {
+        const [gtm, sop] = await Promise.all([
+          postTool<{ gtm_guide: string; strategy_summary: string }>(
+            tools_base_url,
+            "generate_gtm_strategy",
+            {
+              campaign_id,
+              variants: [strategyVariant],
+            },
+          ),
+          postTool<{ sop_doc: string }>(tools_base_url, "generate_sop", {
+            campaign_id,
+            variants: [strategyVariant],
+            iterations_log: history.map((s, idx) => ({
+              iteration: idx,
+              score: s,
+            })),
+          }),
+        ]);
+
+        const deliverables = {
+          gtm_guide: gtm.gtm_guide,
+          sop_doc: sop.sop_doc,
+          strategy_summary: gtm.strategy_summary,
+          generated_at: new Date().toISOString(),
+        };
+
+        yield canvasPatch(deliveryNode.id, {
+          deliverables,
+          gtm_ready: true,
+        });
+
+        yield {
+          event_type: "campaign.deliverables_ready",
+          job_id,
+          campaign_id,
+          candidate_id: candidate_spec.id,
+          deliverables,
+        };
+
+        const summary =
+          `Campaign delivered. ${history.length} iteration(s) (highest: ` +
+          `${(lastScore?.neural_score ?? 0).toFixed(1)}). GTM + SOP docs ` +
+          "available on the Delivery node.";
+        yield {
+          event_type: "chat.assistant_message",
+          job_id,
+          campaign_id,
+          candidate_id: candidate_spec.id,
+          message: summary,
+        };
+      } catch (err) {
+        yield base("strategist.failed", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
     yield {
       event_type: "candidate.complete",
       job_id,
@@ -514,6 +601,14 @@ async function runComfyStep(
   },
 ): Promise<RunComfyUIWorkflowOutput> {
   return tools.run_comfyui_workflow.handler({ workflow, ...ctx });
+}
+
+function postTool<T>(
+  toolsBaseUrl: string,
+  toolName: string,
+  body: Record<string, unknown>,
+): Promise<T> {
+  return httpToolHandler<Record<string, unknown>, T>(toolName, toolsBaseUrl)(body);
 }
 
 function defaultPrompt(spec: CandidateSpec): string {

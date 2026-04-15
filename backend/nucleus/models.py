@@ -139,6 +139,15 @@ class IterationDetail(BaseModel):
 # Campaigns — a UI-facing archetype graph that can be executed as a Brief.
 # ---------------------------------------------------------------------------
 
+class CampaignDeliverables(BaseModel):
+    """GTM + SOP docs produced by the strategist on the Delivery node."""
+
+    gtm_guide: str | None = None  # markdown
+    sop_doc: str | None = None  # markdown
+    strategy_summary: str | None = None
+    generated_at: datetime | None = None
+
+
 class Campaign(BaseModel):
     id: str = Field(default_factory=_new_id)
     archetype: str
@@ -150,6 +159,7 @@ class Campaign(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_executed_at: datetime | None = None
     last_job_id: str | None = None
+    deliverables: CampaignDeliverables | None = None
 
 
 class CampaignCreate(BaseModel):
@@ -165,6 +175,7 @@ class CampaignUpdate(BaseModel):
     graph: dict | None = None
     brief: dict | None = None
     status: str | None = None
+    deliverables: CampaignDeliverables | None = None
 
 
 class CampaignExecuteResponse(BaseModel):
