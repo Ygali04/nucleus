@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 from uuid import uuid4
 
-from nucleus.config import elevenlabs_api_key, is_mock
+from nucleus.config import elevenlabs_api_key, is_mock_audio as is_mock
 from nucleus.providers._types import AudioProvider, AudioResult
 
 __all__ = ["AudioProvider", "AudioResult", "ElevenLabsProvider"]

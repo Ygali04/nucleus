@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 
 from nucleus.clients.siliconflow import DEFAULT_MODEL, SiliconFlowClient
-from nucleus.config import is_mock
+from nucleus.config import is_mock_image as is_mock
 from nucleus.providers._image_protocol import ImageProvider, ImageResult
 
 _MOCK_IMAGE_URL = "https://mock.nucleus.dev/fixtures/sample_image.png"

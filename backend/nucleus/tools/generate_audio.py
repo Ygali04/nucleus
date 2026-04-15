@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from nucleus.config import is_mock
+from nucleus.config import is_mock_audio
 from nucleus.providers import get_provider
 from nucleus.tools.mock_fixtures import mock_audio_url
 from nucleus.tools.schemas import GenerateAudioRequest, GenerateAudioResponse
 
 
 async def generate_audio(req: GenerateAudioRequest) -> GenerateAudioResponse:
-    if is_mock():
+    if is_mock_audio():
         char_count = len(req.text)
         return GenerateAudioResponse(
             audio_url=mock_audio_url("speech"),

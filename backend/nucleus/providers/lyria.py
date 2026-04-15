@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from nucleus.config import google_cloud_project, is_mock
+from nucleus.config import google_cloud_project, is_mock_music as is_mock
 from nucleus.providers._types import AudioResult, MusicProvider
 
 __all__ = ["AudioResult", "LyriaProvider", "MusicProvider"]

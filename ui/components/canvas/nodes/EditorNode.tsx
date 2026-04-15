@@ -43,7 +43,7 @@ export function EditorNode({ id, data, selected }: NodeProps) {
       : null;
 
   return (
-    <NodeContextMenuWrapper nodeId={id} kind="editor">
+    <NodeContextMenuWrapper nodeId={id} kind="editor" nodeData={node.data}>
       <div
         className={`gs-card relative min-w-[216px] max-w-[216px] rounded-xl border bg-white px-3 py-3 ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{

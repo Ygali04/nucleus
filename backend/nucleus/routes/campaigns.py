@@ -8,11 +8,13 @@ and hands it off to the existing Celery worker.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from nucleus.events import publish_event
 from nucleus.tools.schemas import ChatRequest, ChatResponse
@@ -26,7 +28,9 @@ from nucleus.models import (
     Job,
     JobState,
 )
+from nucleus.orchestrator.finalize import finalize_campaign
 from nucleus.orchestrator.planner import expand_brief
+from nucleus.orchestrator.suggestions import resolve_suggestion
 from nucleus.store import (
     delete_campaign,
     get_campaign,
@@ -178,9 +182,46 @@ async def execute_campaign(campaign_id: str) -> CampaignExecuteResponse:
     await publish_event(job.id, "job.queued", {"job_id": job.id, "campaign_id": campaign.id})
 
     await mark_campaign_executed(campaign.id, job.id)
-    run_job_task.delay(job.id)
+
+    # In eager mode (local dev/smoke), .delay() blocks the request and every
+    # event fires before a WS client can subscribe. Defer execution so the
+    # HTTP response returns first and the UI has time to connect.
+    import os
+    if os.getenv("NUCLEUS_EAGER_TASKS", "").strip().lower() in ("1", "true", "yes"):
+        import asyncio
+        async def _deferred() -> None:
+            # Small delay lets the caller connect the WS before events fire.
+            await asyncio.sleep(0.5)
+            await _run_and_finalize(job.id, campaign.id)
+        asyncio.create_task(_deferred())
+    else:
+        run_job_task.delay(job.id)
 
     return CampaignExecuteResponse(job_id=job.id, websocket_url=f"/ws/job/{job.id}")
+
+
+async def _run_and_finalize(job_id: str, campaign_id: str) -> None:
+    """Eager-mode driver: run the orchestrator, then generate deliverables.
+
+    Thin wrapper around :func:`run_job` + :func:`finalize_campaign` so both
+    the eager and Celery paths produce deliverables. The standalone
+    ``finalize_campaign`` lives in ``nucleus.orchestrator.finalize``.
+    """
+    import os
+    from nucleus.orchestrator.loop import run_job
+
+    mock = os.getenv("NUCLEUS_MOCK_PROVIDERS", "").lower() in ("1", "true", "yes")
+    candidates = await list_candidates_for_job(job_id)
+    candidate_ids = [c.id for c in candidates]
+    await publish_event(job_id, "job.started", {"candidate_count": len(candidate_ids)})
+    try:
+        await run_job(job_id, candidate_ids, mock=mock)
+    except Exception as exc:  # noqa: BLE001
+        await publish_event(job_id, "job.failed", {"error": str(exc)})
+        return
+
+    await finalize_campaign(job_id, campaign_id)
+    await publish_event(job_id, "job.complete", {"job_id": job_id})
 
 
 @router.post("/campaigns/{campaign_id}/chat", response_model=ChatResponse)
@@ -214,6 +255,61 @@ async def send_chat(campaign_id: str, req: ChatRequest) -> ChatResponse:
         {"campaign_id": campaign_id, "message": message},
     )
     return ChatResponse(status="queued")
+
+
+class SuggestionRejectBody(BaseModel):
+    feedback: str | None = None
+
+
+@router.post("/campaigns/{campaign_id}/suggestions/{suggestion_id}/approve")
+async def approve_suggestion(campaign_id: str, suggestion_id: str) -> dict[str, str]:
+    """Approve a pending ``canvas.node_suggested`` proposal.
+
+    Publishes ``canvas.node_approved`` so the Ruflo bridge (subscribed via
+    the event bus) commits the node and the orchestrator can resume.
+    """
+    handle = await resolve_suggestion(suggestion_id, approved=True)
+    if handle is None:
+        # Not yet registered — still publish so a late-arriving subscriber
+        # can react, but flag it for the caller.
+        await publish_event(campaign_id, "canvas.node_approved", {
+            "campaign_id": campaign_id,
+            "suggestion_id": suggestion_id,
+            "status": "approved",
+            "note": "no_pending_handle",
+        })
+        return {"status": "approved", "suggestion_id": suggestion_id, "known": "false"}
+    await publish_event(campaign_id, "canvas.node_approved", {
+        "campaign_id": campaign_id,
+        "suggestion_id": suggestion_id,
+        "status": "approved",
+    })
+    return {"status": "approved", "suggestion_id": suggestion_id, "known": "true"}
+
+
+@router.post("/campaigns/{campaign_id}/suggestions/{suggestion_id}/reject")
+async def reject_suggestion(
+    campaign_id: str,
+    suggestion_id: str,
+    body: SuggestionRejectBody | None = None,
+) -> dict[str, str]:
+    """Reject a pending suggestion; Ruflo will pick a different proposal."""
+    feedback = body.feedback if body else None
+    handle = await resolve_suggestion(
+        suggestion_id, approved=False, feedback=feedback
+    )
+    payload: dict[str, Any] = {
+        "campaign_id": campaign_id,
+        "suggestion_id": suggestion_id,
+        "status": "rejected",
+    }
+    if feedback:
+        payload["feedback"] = feedback
+    if handle is None:
+        payload["note"] = "no_pending_handle"
+    await publish_event(campaign_id, "canvas.node_rejected", payload)
+    return {"status": "rejected", "suggestion_id": suggestion_id,
+            "known": "true" if handle is not None else "false"}
 
 
 @router.get("/campaigns/{campaign_id}/reports", response_model=list[CampaignReport])

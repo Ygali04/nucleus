@@ -54,6 +54,14 @@ TYPES: dict[str, str] = {
     "canvas.node_added": "Ruflo (or the user) added a node to the canvas.",
     "canvas.node_updated": "Ruflo (or the user) patched a node on the canvas.",
     "canvas.edge_added": "Ruflo (or the user) wired an edge on the canvas.",
+    "canvas.node_suggested": "Ruflo proposed a node mid-run; awaits user approval.",
+    "canvas.node_approved": "User approved a pending node suggestion.",
+    "canvas.node_rejected": "User rejected a pending node suggestion.",
+    "strategist.failed": "GTM/SOP strategist invocation failed.",
+    "campaign.delivered": "Campaign-level deliverables (GTM + SOP) generated.",
+    "job.complete": "Orchestrator finished all candidates for a job.",
+    "job.started": "Orchestrator started dispatching candidate loops.",
+    "job.failed": "Orchestrator loop crashed.",
 }
 
 

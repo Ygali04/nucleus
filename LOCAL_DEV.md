@@ -20,8 +20,29 @@ cd ../video-brainscore
 docker compose up -d
 ```
 
-(Skip this step when running Nucleus with `NUCLEUS_MOCK_PROVIDERS=true` —
-mock scoring returns synthetic numbers and does not hit NeuroPeer.)
+(Skip this step when running Nucleus with `NUCLEUS_MOCK_PROVIDERS=true`
+or `NUCLEUS_MOCK_SCORE=true` — mock scoring returns synthetic numbers
+and does not hit NeuroPeer.)
+
+### Per-provider mock toggles
+
+The single `NUCLEUS_MOCK_PROVIDERS=true` kill-switch has been split into
+per-provider flags so you can mix real and mock providers in one run.
+Each defaults to `NUCLEUS_MOCK_PROVIDERS` when unset:
+
+```bash
+export NUCLEUS_MOCK_VIDEO=false   # real Kling/Seedance/Veo (needs FAL_KEY)
+export NUCLEUS_MOCK_AUDIO=false   # real ElevenLabs (needs ELEVENLABS_API_KEY)
+export NUCLEUS_MOCK_IMAGE=false   # real flux/SiliconFlow (needs SILICONFLOW_KEY)
+export NUCLEUS_MOCK_MUSIC=true    # Lyria off (no Vertex creds)
+export NUCLEUS_MOCK_SCORE=true    # NeuroPeer off (no local service)
+export NUCLEUS_MOCK_RUFLO=true    # GLM brain off (no GLM_KEY)
+```
+
+Common dev setup: mock just the services you don't have creds for, run
+everything else real. The orchestrator always routes through the Ruflo
+bridge — when `NUCLEUS_MOCK_RUFLO=true` the bridge falls back to its
+deterministic fallback graph instead of calling GLM.
 
 ## 2. Set environment variables (optional, real mode only)
 

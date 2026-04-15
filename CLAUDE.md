@@ -78,7 +78,16 @@ Design docs live at https://ygali04.github.io/nucleus and under `docs/`. Read th
 
 ### Canonical toggles
 
-- `NUCLEUS_MOCK_PROVIDERS=true` — the *single* mock switch. When set, every provider returns fixture data regardless of which provider name was requested. Honor this in any new provider. Read it live via `nucleus.config.is_mock()`, NOT from the cached `settings` singleton (see "Common traps").
+- `NUCLEUS_MOCK_PROVIDERS=true` — the *global* mock switch. When set, every provider returns fixture data regardless of which provider name was requested. Honor this in any new provider. Read it live via `nucleus.config.is_mock()`, NOT from the cached `settings` singleton (see "Common traps").
+- **Per-provider mock toggles** (override the global for one slice of the pipeline) — each defaults to `is_mock()` when unset:
+  - `NUCLEUS_MOCK_VIDEO=true/false` — Kling/Seedance/Veo/ComfyUI video (`is_mock_video()`).
+  - `NUCLEUS_MOCK_AUDIO=true/false` — ElevenLabs / ComfyUI audio (`is_mock_audio()`).
+  - `NUCLEUS_MOCK_IMAGE=true/false` — flux/SiliconFlow image (`is_mock_image()`).
+  - `NUCLEUS_MOCK_MUSIC=true/false` — Lyria (`is_mock_music()`).
+  - `NUCLEUS_MOCK_SCORE=true/false` — NeuroPeer scoring (`is_mock_score()`).
+  - `NUCLEUS_MOCK_RUFLO=true/false` — GLM brain (`is_mock_ruflo()` / bridge-side `isMockMode`).
+  - `NUCLEUS_MOCK_COMFYUI=true/false` — ComfyUI workflow executor (`is_mock_comfyui()`, defaults true if any of video/audio/image/music is mocked).
+  - Typical real-world setup: `NUCLEUS_MOCK_SCORE=true` (no NeuroPeer key) + `NUCLEUS_MOCK_RUFLO=true` (no GLM key) + rest false to exercise real video/audio providers end-to-end.
 - `NUCLEUS_USE_DIRECT_SDK=true` — opt back into direct Kling/ElevenLabs SDK calls instead of routing through ComfyUI. Default is ComfyUI-routed.
 - `NUCLEUS_NO_REDIS=1` — in-process event bus only, no Redis publish. Tests set this in `backend/tests/conftest.py`.
 - `NUCLEUS_EAGER_TASKS=1` — Celery runs synchronously in-process. Useful for the local smoke test without a Redis broker.
@@ -210,9 +219,17 @@ DATABASE_URL=sqlite+aiosqlite:////tmp/nucleus.db python -m nucleus.db.migrate
 # Terminal A — API
 # Minimum env for a live (non-mock) run: SILICONFLOW_KEY (flux images), GLM_KEY (Ruflo brain),
 # FAL_KEY (Kling/Seedance/Veo via ComfyUI), ELEVENLABS_API_KEY (voice), NEUROPEER_API_KEY (scoring).
+# All-mock fast iteration:
 NUCLEUS_MOCK_PROVIDERS=true NUCLEUS_NO_REDIS=1 NUCLEUS_EAGER_TASKS=1 \
   DATABASE_URL=sqlite+aiosqlite:////tmp/nucleus.db \
   uvicorn nucleus.app:app --port 8000
+# Mixed: real video + audio, mock scoring + Ruflo brain (no NeuroPeer / GLM keys needed):
+# NUCLEUS_MOCK_VIDEO=false NUCLEUS_MOCK_AUDIO=false \
+#   NUCLEUS_MOCK_SCORE=true NUCLEUS_MOCK_RUFLO=true \
+#   FAL_KEY=... ELEVENLABS_API_KEY=... \
+#   NUCLEUS_NO_REDIS=1 NUCLEUS_EAGER_TASKS=1 \
+#   DATABASE_URL=sqlite+aiosqlite:////tmp/nucleus.db \
+#   uvicorn nucleus.app:app --port 8000
 
 # Terminal B — UI
 cd ui && npm run dev   # Node 20+, Next 15

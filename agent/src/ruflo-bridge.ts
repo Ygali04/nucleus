@@ -903,17 +903,34 @@ export async function* runChat(
         break;
       case "add_node":
         if (action.node && action.node.kind) {
+          // Mid-run node additions require user approval — emit
+          // canvas.node_suggested + a chat.assistant_message flagged with
+          // requires_approval: true so the UI can render inline approve/reject.
           const nid = `${campaign_id}-${action.node.kind}-${rand4()}`;
-          yield starterEvent("canvas.node_added", campaign_id, {
-            node: {
-              id: nid,
-              kind: action.node.kind,
-              subtype: action.node.kind,
-              label: action.node.label ?? action.node.kind,
-              x: action.node.x ?? 0,
-              y: action.node.y ?? 0,
-              data: action.node.data ?? {},
-            },
+          const suggestion_id = `sug_${rand4()}${rand4()}`;
+          const reason =
+            (action as { reason?: string }).reason
+            ?? "Ruflo proposed this node based on the active scoring report.";
+          const proposedNode = {
+            id: nid,
+            kind: action.node.kind,
+            subtype: action.node.kind,
+            label: action.node.label ?? action.node.kind,
+            x: action.node.x ?? 0,
+            y: action.node.y ?? 0,
+            data: action.node.data ?? {},
+          };
+          yield starterEvent("canvas.node_suggested", campaign_id, {
+            suggestion_id,
+            reason,
+            node: proposedNode,
+          });
+          yield starterEvent("chat.assistant_message", campaign_id, {
+            role: "assistant",
+            message: `I'd like to add a ${action.node.kind} node ("${action.node.label ?? action.node.kind}"). ${reason}`,
+            content: `I'd like to add a ${action.node.kind} node ("${action.node.label ?? action.node.kind}"). ${reason}`,
+            requires_approval: true,
+            suggestion_id,
           });
         }
         break;

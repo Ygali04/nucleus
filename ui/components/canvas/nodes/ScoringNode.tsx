@@ -33,7 +33,7 @@ export function ScoringNode({ id, data, selected }: NodeProps) {
   const offset = circumference - (score / 100) * circumference;
 
   return (
-    <NodeContextMenuWrapper nodeId={id} kind="scoring">
+    <NodeContextMenuWrapper nodeId={id} kind="scoring" nodeData={node.data}>
       <div
         className={`gs-card relative min-w-[232px] max-w-[232px] rounded-xl border bg-white px-3 py-3 ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{

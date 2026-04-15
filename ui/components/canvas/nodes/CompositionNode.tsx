@@ -27,7 +27,7 @@ export function CompositionNode({ id, data, selected }: NodeProps) {
   const ruflo = isRufloAdded(node.data);
 
   return (
-    <NodeContextMenuWrapper nodeId={id} kind="composition">
+    <NodeContextMenuWrapper nodeId={id} kind="composition" nodeData={node.data}>
       <div
         className={`gs-card relative min-w-[216px] max-w-[216px] rounded-xl border bg-white px-3 py-3 ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{

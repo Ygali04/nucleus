@@ -33,6 +33,13 @@ export function TypedEdge({
   const dataType: NodeDataType =
     explicit ?? (sourceKind ? primaryOutputType(sourceKind) : 'any');
 
+  // Pending edges belong to a Ruflo ghost-node suggestion: render violet +
+  // dashed + pulsing until the suggestion resolves.
+  const edgeDataBag = data as
+    | { pending?: boolean; pendingApproval?: string }
+    | undefined;
+  const pending = Boolean(edgeDataBag?.pending || edgeDataBag?.pendingApproval);
+
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -42,7 +49,8 @@ export function TypedEdge({
     targetPosition,
   });
 
-  const color = DATA_TYPE_COLOR[dataType];
+  const SUGGESTED_COLOR = '#8b5cf6';
+  const color = pending ? SUGGESTED_COLOR : DATA_TYPE_COLOR[dataType];
 
   return (
     <>
@@ -51,10 +59,12 @@ export function TypedEdge({
         path={edgePath}
         style={{
           stroke: color,
-          strokeWidth: 1.5,
-          opacity: hovered ? 1 : 0.7,
+          strokeWidth: pending ? 2 : 1.5,
+          opacity: hovered ? 1 : pending ? 0.9 : 0.7,
+          strokeDasharray: pending ? '6 4' : undefined,
           transition: 'opacity 120ms ease',
         }}
+        className={pending ? 'nucleus-ghost-pending-edge' : undefined}
         interactionWidth={20}
       />
       <path

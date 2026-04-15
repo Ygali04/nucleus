@@ -8,12 +8,16 @@ agent loop and the edit-decision logic. This module:
   * Applies each event to the in-memory store and re-publishes it on
     ``nucleus.events`` so WebSocket subscribers see the same stream.
 
-Two paths:
+Execution paths:
 
-  * **Ruflo path** (default) — real agent swarm via the Node bridge.
-  * **Mock path** (``NUCLEUS_MOCK_PROVIDERS=true`` or ``mock=True``) —
-    bypasses the bridge entirely and uses progressive mock scores for
-    fast in-process tests.
+  * **Ruflo path** (default) — real agent swarm via the Node bridge. With the
+    new per-provider mock toggles (``NUCLEUS_MOCK_VIDEO``, ``NUCLEUS_MOCK_SCORE``,
+    etc.) individual tool endpoints still return fixture data when flagged, so
+    the Ruflo-driven loop works even in dev/test without real provider keys.
+  * **Test fixture path** (``mock=True``) — deterministic in-process path used
+    by the Python test-suite to verify the closed-loop iteration, scoring, and
+    ceiling semantics *without* standing up the Ruflo bridge. Emits the same
+    event shapes the Ruflo bridge would emit so consumers don't branch.
 """
 
 from __future__ import annotations
@@ -115,6 +119,7 @@ async def _run_candidate_loop_ruflo(
     await save_candidate(candidate)
 
     current_iteration: int = -1
+    score_history: list[float] = []
 
     try:
         async for event in run_swarm(candidate, client=client):
@@ -123,9 +128,44 @@ async def _run_candidate_loop_ruflo(
             )
             if handled_iteration is not None:
                 current_iteration = handled_iteration
+            if event.get("event_type") == "candidate.scored":
+                try:
+                    score_history.append(float(event.get("score") or 0))
+                except (TypeError, ValueError):
+                    pass
             # Re-publish every event to the in-process bus so WS clients see it.
             data = {k: v for k, v in event.items() if k not in {"event_type", "job_id"}}
             await publish_event(job_id, str(event["event_type"]), data)
+
+            # When the bridge signals ceiling on delivery, surface a chat
+            # message so the UI explains why we're stopping.
+            if event.get("event_type") == "candidate.delivered":
+                decision = str(event.get("decision") or "")
+                if decision in {"ceiling", "max_iterations"} and not event.get(
+                    "_chat_emitted"
+                ):
+                    score = float(event.get("score") or 0)
+                    threshold = candidate.score_threshold
+                    if score < threshold:
+                        top = max(score_history) if score_history else score
+                        msg = (
+                            f"Variant {candidate.variant_index} hit the "
+                            f"{candidate.max_iterations}-iteration ceiling at score "
+                            f"{score:.1f} (threshold: {threshold:.1f}, best: "
+                            f"{top:.1f}). Forwarding to delivery with a GTM note."
+                        )
+                        await publish_event(job_id, "chat.assistant_message", {
+                            "campaign_id": job_id,
+                            "candidate_id": candidate.id,
+                            "role": "assistant",
+                            "content": msg,
+                            "message": msg,
+                            "ceiling_hit": True,
+                            "variant_index": candidate.variant_index,
+                            "final_score": score,
+                            "threshold": threshold,
+                        })
+
             if event.get("event_type") == "candidate.failed":
                 candidate.state = JobState.FAILED
                 await save_candidate(candidate)
@@ -308,6 +348,13 @@ async def _mock_score(iteration_index: int) -> ScoreBreakdown:
 
 
 async def _run_candidate_loop_mock(candidate: CandidateSpec) -> None:
+    """Deterministic test-fixture driver mirroring the Ruflo event schema.
+
+    Emits exactly one ``candidate.generating`` per iteration (no off-by-one)
+    and mirrors the ceiling-fallback behavior of the Ruflo bridge: a
+    ``chat.assistant_message`` with ``ceiling_hit: true`` is published when
+    max_iterations is exhausted without clearing the threshold.
+    """
     job_id = candidate.job_id
     score_history: list[float] = []
     cost_so_far = 0.0
@@ -316,10 +363,11 @@ async def _run_candidate_loop_mock(candidate: CandidateSpec) -> None:
 
     candidate.state = JobState.GENERATING
     await save_candidate(candidate)
+
+    # Initial generation — emit one candidate.generating for iteration 0.
     await publish_event(job_id, "candidate.generating", {
         "candidate_id": candidate.id, "iteration": 0,
     })
-
     video_url = await _mock_generate_video(candidate)
     iteration = await create_iteration(candidate.id, 0, video_url)
     cost_so_far += 0.10
@@ -366,6 +414,8 @@ async def _run_candidate_loop_mock(candidate: CandidateSpec) -> None:
         if decision != StopDecision.CONTINUE:
             break
 
+        # Produce the next variant via an edit. This is a new iteration;
+        # emit candidate.editing + candidate.generating exactly once each.
         edit_type = pick_edit(score_result)
         candidate.state = JobState.EDITING
         await save_candidate(candidate)
@@ -384,9 +434,12 @@ async def _run_candidate_loop_mock(candidate: CandidateSpec) -> None:
 
         candidate.state = JobState.GENERATING
         await save_candidate(candidate)
-        await publish_event(job_id, "candidate.generating", {
-            "candidate_id": candidate.id, "iteration": i + 1,
-        })
+        # Only emit candidate.generating for iterations that will actually run
+        # scoring — i.e. when we're about to loop again (i+1 < max_iterations).
+        if i + 1 < candidate.max_iterations:
+            await publish_event(job_id, "candidate.generating", {
+                "candidate_id": candidate.id, "iteration": i + 1,
+            })
 
     await _finalize_mock(candidate, decision, last_score, score_history)
 
@@ -407,9 +460,53 @@ async def _finalize_mock(
     candidate.state = JobState.COMPLETE
     await save_candidate(candidate)
 
+    # Normalize decision for delivery events — the spec requires ceiling-hit
+    # runs to surface ``decision: "ceiling"`` (friendlier than the internal
+    # "max_iterations" StopDecision) and a chat.assistant_message explaining
+    # why the loop stopped. We also treat "exited the range(max_iterations)
+    # loop with decision=CONTINUE and score < threshold" as a ceiling hit —
+    # that's the practical case where iteration count is exhausted without
+    # the evaluator formally emitting MAX_ITERATIONS.
+    exhausted_without_threshold = (
+        decision in (StopDecision.MAX_ITERATIONS, StopDecision.CONTINUE,
+                     StopDecision.MONOTONE_FAILURE)
+        and last_score is not None
+        and last_score.neural_score < candidate.score_threshold
+        and len(score_history) >= candidate.max_iterations
+    )
+    ceiling_hit = (
+        decision == StopDecision.MAX_ITERATIONS
+        and (last_score is None or last_score.neural_score < candidate.score_threshold)
+    ) or exhausted_without_threshold
+    delivered_decision = "ceiling" if ceiling_hit else decision.value
+    final_score = last_score.neural_score if last_score else 0.0
+
     await publish_event(candidate.job_id, "candidate.delivered", {
         "candidate_id": candidate.id,
-        "score": last_score.neural_score if last_score else 0,
+        "score": final_score,
         "iterations": len(score_history),
-        "decision": decision.value,
+        "decision": delivered_decision,
     })
+
+    if ceiling_hit:
+        score_fmt = f"{final_score:.1f}" if isinstance(final_score, (int, float)) else "n/a"
+        thr_fmt = f"{candidate.score_threshold:.1f}"
+        top_score = max(score_history) if score_history else final_score
+        msg = (
+            f"Variant {candidate.variant_index} hit the "
+            f"{candidate.max_iterations}-iteration ceiling at score {score_fmt} "
+            f"(threshold: {thr_fmt}, best across iterations: {top_score:.1f}). "
+            f"I'm forwarding it to delivery with a GTM note describing what was "
+            f"tried and what's still weak."
+        )
+        await publish_event(candidate.job_id, "chat.assistant_message", {
+            "campaign_id": candidate.job_id,
+            "candidate_id": candidate.id,
+            "role": "assistant",
+            "content": msg,
+            "message": msg,  # backward-compat with existing UI key
+            "ceiling_hit": True,
+            "variant_index": candidate.variant_index,
+            "final_score": final_score,
+            "threshold": candidate.score_threshold,
+        })

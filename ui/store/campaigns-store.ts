@@ -16,6 +16,7 @@ import type {
   GraphEdgeMeta,
   GraphNodeKind,
   GraphNodeMeta,
+  NodeSuggestion,
 } from '@/lib/types';
 
 /**
@@ -43,6 +44,9 @@ interface CampaignsState {
   campaigns: Campaign[];
   reportsByCampaign: Record<string, CampaignReport[]>;
   isOffline: boolean;
+
+  // --- Ruflo ghost-node suggestions (live pending-approval queue) ----------
+  pendingSuggestions: Record<string, NodeSuggestion[]>;
 
   // --- UI state ------------------------------------------------------------
   currentCampaignId: string | null;
@@ -92,6 +96,26 @@ interface CampaignsState {
   retryNode: (campaignId: string, nodeId: string) => void;
   openReportForIteration: (nodeId: string) => void;
   appendChatMessage: (campaignId: string, message: ChatMessage) => void;
+  updateChatMessage: (
+    campaignId: string,
+    messageId: string,
+    patch: Partial<ChatMessage>,
+  ) => void;
+
+  // --- Ruflo suggestions --------------------------------------------------
+  addSuggestion: (campaignId: string, suggestion: NodeSuggestion) => void;
+  resolveSuggestion: (
+    campaignId: string,
+    suggestionId: string,
+    outcome: 'approved' | 'rejected',
+    feedback?: string,
+  ) => void;
+  approveSuggestion: (campaignId: string, suggestionId: string) => Promise<void>;
+  rejectSuggestion: (
+    campaignId: string,
+    suggestionId: string,
+    feedback?: string,
+  ) => Promise<void>;
 }
 
 const nowIso = () => new Date().toISOString();
@@ -157,6 +181,7 @@ export const useCampaignsStore = create<CampaignsState>()(
       campaigns: [],
       reportsByCampaign: {},
       isOffline: false,
+      pendingSuggestions: {},
 
       currentCampaignId: null,
       newCampaignModalOpen: false,
@@ -508,6 +533,176 @@ export const useCampaignsStore = create<CampaignsState>()(
           campaignId,
         );
       },
+
+      updateChatMessage: (campaignId, messageId, patch) => {
+        set((s) => ({
+          campaigns: s.campaigns.map((c) => {
+            if (c.id !== campaignId) return c;
+            const brief = (c.brief ?? {}) as Record<string, unknown> & {
+              chat_history?: ChatMessage[];
+            };
+            const history = brief.chat_history ?? [];
+            const nextHistory = history.map((m) =>
+              m.id === messageId ? { ...m, ...patch } : m,
+            );
+            return {
+              ...c,
+              brief: { ...brief, chat_history: nextHistory },
+            };
+          }),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
+
+      addSuggestion: (campaignId, suggestion) => {
+        // Dedup by suggestion id.
+        const existing = get().pendingSuggestions[campaignId] ?? [];
+        if (existing.some((s) => s.id === suggestion.id)) return;
+
+        // Inject the ghost node + pending edges into the campaign graph so the
+        // canvas renders it immediately in the faded/pulsing state.
+        const ghostNode: GraphNodeMeta = {
+          ...suggestion.node,
+          data: {
+            ...(suggestion.node.data ?? {}),
+            pendingApproval: suggestion.id,
+            addedByRuflo: true,
+            suggestionReason: suggestion.reason,
+          },
+        };
+        const pendingEdges: GraphEdgeMeta[] = (suggestion.insertion_edges ?? []).map(
+          (e) => ({
+            ...e,
+            data: { ...(e.data ?? {}), pendingApproval: suggestion.id },
+          }),
+        );
+
+        set((s) => ({
+          pendingSuggestions: {
+            ...s.pendingSuggestions,
+            [campaignId]: [...existing, suggestion],
+          },
+          campaigns: applyNodePatch(s.campaigns, campaignId, (nodes, edges) => ({
+            nodes: nodes.some((n) => n.id === ghostNode.id)
+              ? nodes
+              : [...nodes, ghostNode],
+            edges: [
+              ...edges,
+              ...pendingEdges.filter((ne) => !edges.some((e) => e.id === ne.id)),
+            ],
+          })),
+        }));
+      },
+
+      resolveSuggestion: (campaignId, suggestionId, outcome, feedback) => {
+        const current = get().pendingSuggestions[campaignId] ?? [];
+        const suggestion = current.find((s) => s.id === suggestionId);
+        if (!suggestion) return;
+
+        set((s) => {
+          const nextList = (s.pendingSuggestions[campaignId] ?? []).map((x) =>
+            x.id === suggestionId
+              ? { ...x, resolved: outcome, feedback }
+              : x,
+          );
+
+          const campaignsNext = applyNodePatch(
+            s.campaigns,
+            campaignId,
+            (nodes, edges) => {
+              if (outcome === 'rejected') {
+                // Remove the ghost node + any edges tagged with this suggestion.
+                return {
+                  nodes: nodes.filter((n) => n.id !== suggestion.node.id),
+                  edges: edges.filter(
+                    (e) =>
+                      e.source !== suggestion.node.id &&
+                      e.target !== suggestion.node.id &&
+                      (e.data as { pendingApproval?: string } | undefined)
+                        ?.pendingApproval !== suggestionId,
+                  ),
+                };
+              }
+              // Approved: strip the `pendingApproval` flag from node + edges.
+              return {
+                nodes: nodes.map((n) => {
+                  if (n.id !== suggestion.node.id) return n;
+                  const data = { ...((n.data ?? {}) as Record<string, unknown>) };
+                  delete (data as { pendingApproval?: string }).pendingApproval;
+                  return { ...n, data };
+                }),
+                edges: edges.map((e) => {
+                  const edata = (e.data ?? {}) as { pendingApproval?: string };
+                  if (edata.pendingApproval !== suggestionId) return e;
+                  const nextData = { ...edata };
+                  delete nextData.pendingApproval;
+                  return { ...e, data: nextData };
+                }),
+              };
+            },
+          );
+
+          return {
+            pendingSuggestions: {
+              ...s.pendingSuggestions,
+              [campaignId]: nextList,
+            },
+            campaigns: campaignsNext,
+          };
+        });
+
+        // Mirror resolution into the originating chat message, if any.
+        const campaign = get().campaigns.find((c) => c.id === campaignId);
+        const brief = (campaign?.brief ?? null) as
+          | { chat_history?: ChatMessage[] }
+          | null;
+        const chatMsg = brief?.chat_history?.find(
+          (m) => m.suggestion_id === suggestionId,
+        );
+        if (chatMsg) {
+          get().updateChatMessage(campaignId, chatMsg.id, {
+            approval_outcome: outcome,
+            approval_feedback: feedback,
+          });
+        }
+
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
+      },
+
+      approveSuggestion: async (campaignId, suggestionId) => {
+        // Optimistic local resolution first so the UI responds instantly.
+        get().resolveSuggestion(campaignId, suggestionId, 'approved');
+        try {
+          await apiClient.approveSuggestion(campaignId, suggestionId);
+          set({ isOffline: false });
+        } catch (err) {
+          if (isTransportFailure(err)) {
+            set({ isOffline: true });
+            return;
+          }
+          throw err;
+        }
+      },
+
+      rejectSuggestion: async (campaignId, suggestionId, feedback) => {
+        get().resolveSuggestion(campaignId, suggestionId, 'rejected', feedback);
+        try {
+          await apiClient.rejectSuggestion(campaignId, suggestionId, feedback);
+          set({ isOffline: false });
+        } catch (err) {
+          if (isTransportFailure(err)) {
+            set({ isOffline: true });
+            return;
+          }
+          throw err;
+        }
+      },
     }),
     {
       name: 'nucleus-campaigns',
@@ -516,6 +711,7 @@ export const useCampaignsStore = create<CampaignsState>()(
         campaigns: s.campaigns,
         reportsByCampaign: s.reportsByCampaign,
         currentCampaignId: s.currentCampaignId,
+        pendingSuggestions: s.pendingSuggestions,
       }),
     },
   ),

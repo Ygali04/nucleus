@@ -10,6 +10,8 @@ import {
 
 import { useCanvasChat } from '@/hooks/useCanvasChat';
 import type { ChatMessage } from '@/lib/types';
+import { useCampaignsStore } from '@/store/campaigns-store';
+import { useCanvasStore } from '@/store/canvas-store';
 
 const RUFLO_VIOLET = '#8b5cf6';
 
@@ -42,6 +44,122 @@ function RoleAvatar({ role }: { role: ChatMessage['role'] }) {
     );
   }
   return null;
+}
+
+/**
+ * Inline Approve / Reject buttons for a Ruflo suggestion, shown directly
+ * beneath the `chat.assistant_message` that asked for approval. Uses the same
+ * store actions as the ghost-node overlay on the canvas so either UI can
+ * resolve the suggestion.
+ */
+function InlineApprovalControls({
+  campaignId,
+  suggestionId,
+  nodeId,
+}: {
+  campaignId: string;
+  suggestionId: string;
+  /** Suggestion's node id — used to scroll the canvas to the ghost. */
+  nodeId?: string;
+}) {
+  const approve = useCampaignsStore((s) => s.approveSuggestion);
+  const reject = useCampaignsStore((s) => s.rejectSuggestion);
+  const pendingSuggestions = useCampaignsStore((s) => s.pendingSuggestions);
+  const highlightNode = useCanvasStore((s) => s.highlightNode);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // Resolve the ghost node id from the stored suggestion (falls back to the
+  // suggestion id if the back-end uses the same value for both).
+  const ghostNodeId =
+    pendingSuggestions[campaignId]?.find((s) => s.id === suggestionId)?.node.id ??
+    nodeId;
+
+  return (
+    <div className="mt-2">
+      <div className="flex items-center gap-1.5">
+        {ghostNodeId ? (
+          <button
+            type="button"
+            onClick={() => highlightNode(ghostNodeId)}
+            className="rounded-md border border-black/10 px-2 py-1 text-[11px] text-[var(--color-muted)] hover:bg-black/5"
+          >
+            Review on canvas
+          </button>
+        ) : null}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await approve(campaignId, suggestionId);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="rounded-md px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+          style={{ backgroundColor: RUFLO_VIOLET }}
+        >
+          Approve
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setRejectOpen((v) => !v)}
+          className="rounded-md border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+          style={{ borderColor: RUFLO_VIOLET, color: RUFLO_VIOLET }}
+        >
+          Reject
+        </button>
+      </div>
+      {rejectOpen ? (
+        <div className="mt-1.5 rounded-md border border-black/10 p-2">
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Tell Ruflo what to try instead…"
+            className="h-14 w-full resize-none rounded border border-black/10 p-1.5 text-[11px] outline-none"
+          />
+          <div className="mt-1 flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setRejectOpen(false);
+                setFeedback('');
+              }}
+              className="rounded px-2 py-1 text-[11px] text-[var(--color-muted)] hover:bg-black/5"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await reject(
+                    campaignId,
+                    suggestionId,
+                    feedback.trim() || undefined,
+                  );
+                } finally {
+                  setBusy(false);
+                  setRejectOpen(false);
+                  setFeedback('');
+                }
+              }}
+              className="rounded px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: RUFLO_VIOLET }}
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function ThinkingDots() {
@@ -165,6 +283,11 @@ export function CanvasChat({ campaignId }: CanvasChatProps) {
             );
           }
           const isUser = msg.role === 'user';
+          const showApproval =
+            !isUser &&
+            msg.requires_approval === true &&
+            typeof msg.suggestion_id === 'string' &&
+            !msg.approval_outcome;
           return (
             <div
               key={msg.id}
@@ -178,7 +301,26 @@ export function CanvasChat({ campaignId }: CanvasChatProps) {
                     : 'border border-black/5 bg-white text-gray-900'
                 }`}
               >
-                {msg.content}
+                <div>{msg.content}</div>
+                {showApproval && campaignId && msg.suggestion_id ? (
+                  <InlineApprovalControls
+                    campaignId={campaignId}
+                    suggestionId={msg.suggestion_id}
+                    nodeId={msg.suggestion_id}
+                  />
+                ) : null}
+                {msg.approval_outcome ? (
+                  <div
+                    className="mt-1.5 text-[11px] italic"
+                    style={{ color: RUFLO_VIOLET }}
+                  >
+                    {msg.approval_outcome === 'approved'
+                      ? 'Approved'
+                      : msg.approval_feedback
+                      ? `Rejected — ${msg.approval_feedback}`
+                      : 'Rejected'}
+                  </div>
+                ) : null}
               </div>
             </div>
           );

@@ -6,6 +6,7 @@ import type {
   GraphEdgeMeta,
   GraphNodeMeta,
   NodeExecutionState,
+  NodeSuggestion,
   PipelineEvent,
   PipelineEventSeverity,
 } from '@/lib/types';
@@ -106,6 +107,47 @@ export function usePipelineEvents() {
         if (eventType === 'canvas.edge_added') {
           const edge = payload.edge as GraphEdgeMeta | undefined;
           if (campaignId && edge) store.addEdge(campaignId, edge);
+          return;
+        }
+        if (eventType === 'canvas.node_suggested') {
+          const suggestionId = payload.suggestion_id as string | undefined;
+          const node = payload.node as GraphNodeMeta | undefined;
+          const reason = (payload.reason as string | undefined) ?? '';
+          const insertionEdges =
+            (payload.insertion_edges as GraphEdgeMeta[] | undefined) ?? [];
+          if (campaignId && suggestionId && node) {
+            const suggestion: NodeSuggestion = {
+              id: suggestionId,
+              node,
+              insertion_edges: insertionEdges,
+              reason,
+              created_at:
+                (payload.created_at as string | undefined) ??
+                (raw.timestamp as string | undefined) ??
+                new Date().toISOString(),
+            };
+            store.addSuggestion(campaignId, suggestion);
+          }
+          return;
+        }
+        if (eventType === 'canvas.node_approved') {
+          const suggestionId = payload.suggestion_id as string | undefined;
+          if (campaignId && suggestionId) {
+            store.resolveSuggestion(campaignId, suggestionId, 'approved');
+          }
+          return;
+        }
+        if (eventType === 'canvas.node_rejected') {
+          const suggestionId = payload.suggestion_id as string | undefined;
+          const reason = payload.reason as string | undefined;
+          if (campaignId && suggestionId) {
+            store.resolveSuggestion(
+              campaignId,
+              suggestionId,
+              'rejected',
+              reason,
+            );
+          }
           return;
         }
         if (eventType === 'canvas.node_updated') {

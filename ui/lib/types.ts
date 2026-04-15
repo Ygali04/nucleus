@@ -303,6 +303,23 @@ export interface GraphEdgeMeta {
   data?: Record<string, unknown>;
 }
 
+/**
+ * Ruflo ghost-node suggestion. Emitted via `canvas.node_suggested` events when
+ * the orchestrator wants to extend the pipeline mid-run. The UI materializes
+ * the node in a faded/pulsing "pending approval" state; the user approves or
+ * rejects (with optional feedback) via the CanvasChat panel or the inline
+ * buttons on the ghost node itself.
+ */
+export interface NodeSuggestion {
+  id: string;
+  node: GraphNodeMeta;
+  insertion_edges: GraphEdgeMeta[];
+  reason: string;
+  created_at: string;
+  resolved?: 'approved' | 'rejected';
+  feedback?: string;
+}
+
 export interface NodeMetrics {
   tasksToday: number;
   avgDuration: string;
@@ -362,6 +379,11 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
+  /** Ruflo-suggestion approval metadata, carried when `requires_approval`. */
+  suggestion_id?: string;
+  requires_approval?: boolean;
+  approval_outcome?: 'approved' | 'rejected';
+  approval_feedback?: string;
 }
 
 export interface CampaignBrief {

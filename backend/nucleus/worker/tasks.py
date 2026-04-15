@@ -98,7 +98,7 @@ def run_job_task(self, job_id: str) -> dict:  # noqa: ARG001 — self required f
 
 
 async def _run_job_async(job_id: str) -> dict:
-    mock = os.getenv("NUCLEUS_MOCK_PROVIDERS", "true").lower() == "true"
+    mock = os.getenv("NUCLEUS_MOCK_PROVIDERS", "").lower() in ("1", "true", "yes")
 
     candidates = await list_candidates_for_job(job_id)
     candidate_ids = [c.id for c in candidates]
@@ -110,6 +110,23 @@ async def _run_job_async(job_id: str) -> dict:
     job = await get_job(job_id)
     job.state = JobState.COMPLETE
     await save_job(job)
+
+    # Mirror the eager-path finalize step: resolve the campaign by the job's
+    # last_job_id stamp (set via mark_campaign_executed) and run the
+    # strategist so deliverables land regardless of which execution path was
+    # used to start the job.
+    from nucleus.orchestrator.finalize import (
+        finalize_campaign,
+        get_campaign_by_last_job_id,
+    )
+    campaign_id = await get_campaign_by_last_job_id(job_id)
+    if campaign_id is not None:
+        try:
+            await finalize_campaign(job_id, campaign_id)
+        except Exception:  # noqa: BLE001
+            # finalize publishes its own strategist.failed event; swallow so
+            # the worker still marks the job complete.
+            pass
 
     await publish_event(job_id, "job.complete", {"job_id": job_id})
 

@@ -32,7 +32,7 @@ export function AudioGenNode({ id, data, selected }: NodeProps) {
   );
 
   return (
-    <NodeContextMenuWrapper nodeId={id} kind="audio_gen">
+    <NodeContextMenuWrapper nodeId={id} kind="audio_gen" nodeData={node.data}>
       <div
         className={`gs-card relative min-w-[208px] max-w-[208px] rounded-xl border bg-white px-3 py-3 ${ruflo ? RUFLO_ARRIVAL_CLASS : ''}`}
         style={{

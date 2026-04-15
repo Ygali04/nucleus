@@ -13,6 +13,10 @@ import {
 } from 'lucide-react';
 import { useCampaignsStore } from '@/store/campaigns-store';
 import type { GraphNodeKind } from '@/lib/types';
+import {
+  PendingApprovalOverlay,
+  pendingApprovalId,
+} from '@/components/canvas/nodes/PendingApprovalOverlay';
 
 const SWAP_KINDS: GraphNodeKind[] = [
   'video_gen',
@@ -142,10 +146,17 @@ export function NodeContextMenuWrapper({
   nodeId,
   kind,
   children,
+  nodeData,
 }: {
   nodeId: string;
   kind: GraphNodeKind;
   children: ReactNode;
+  /**
+   * Pass the node's `data` bag so the wrapper can detect a Ruflo
+   * ghost-suggestion (`pendingApproval`) and render the approval overlay +
+   * block the edit modal.
+   */
+  nodeData?: Record<string, unknown>;
 }) {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number | undefined>(undefined);
@@ -174,9 +185,25 @@ export function NodeContextMenuWrapper({
     setOpen(true);
   };
 
+  const pendingSuggestion = pendingApprovalId(nodeData);
+  const pendingReason = nodeData
+    ? ((nodeData as { suggestionReason?: string }).suggestionReason ?? undefined)
+    : undefined;
+
+  const body = pendingSuggestion ? (
+    <PendingApprovalOverlay
+      suggestionId={pendingSuggestion}
+      reason={pendingReason}
+    >
+      {children}
+    </PendingApprovalOverlay>
+  ) : (
+    children
+  );
+
   return (
     <div className="group relative" onContextMenu={onContextMenu}>
-      {children}
+      {body}
 
       {/* Anchor for the dots button + popover. Top-right of the node.
          z-[45] keeps the menu above all React Flow nodes but below the
