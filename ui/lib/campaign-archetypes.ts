@@ -113,90 +113,103 @@ function annotateEdges(
 const DEMO_NODES: GraphNodeMeta[] = [
   seedNode('demo-brandkb', 'Brand KB', 'brand_kb', 0, 0),
   seedNode('demo-icp', 'ICP', 'icp', 1, 0),
-  seedNode('demo-videogen', 'Video Gen', 'video_gen', 2, 0, {
+  seedNode('demo-storyboard', 'Storyboard', 'storyboard', 2, 0, {
+    subtype: 'frames',
+    metaTag: 'Storyboard frames',
+    data: { prompt: '', frameCount: 4, aspectRatio: '16:9', imageUrls: [] },
+  }),
+  seedNode('demo-videogen', 'Video Gen', 'video_gen', 3, 0, {
     subtype: 'product',
     metaTag: 'Product walkthrough',
   }),
-  seedNode('demo-audiogen', 'Audio Gen', 'audio_gen', 3, 0, {
+  seedNode('demo-audiogen', 'Audio Gen', 'audio_gen', 4, 0, {
     subtype: 'narration',
     metaTag: 'Narration',
   }),
-  seedNode('demo-composition', 'Composition', 'composition', 4, 0, {
+  seedNode('demo-composition', 'Composition', 'composition', 5, 0, {
     subtype: 'DemoArchetype',
     metaTag: 'DemoArchetype',
   }),
-  seedNode('demo-scoring-1', 'Scoring', 'scoring', 5, 0, { subtype: 'initial' }),
-  seedNode('demo-editor', 'Editor', 'editor', 6, 0),
-  seedNode('demo-scoring-2', 'Scoring', 'scoring', 7, 0, { subtype: 'rescore' }),
-  seedNode('demo-delivery', 'Delivery', 'delivery', 8, 0),
+  seedNode('demo-scoring-1', 'Scoring', 'scoring', 6, 0, { subtype: 'initial' }),
+  seedNode('demo-editor', 'Editor', 'editor', 7, 0),
+  seedNode('demo-scoring-2', 'Scoring', 'scoring', 8, 0, { subtype: 'rescore' }),
+  seedNode('demo-delivery', 'Delivery', 'delivery', 9, 0),
 ];
 
 // Closed-loop semantics: brand + ICP fan out to generators; report feeds editor;
 // composition feeds editor source video; scoring-2 can loop back to editor for
 // additional passes below threshold.
 const DEMO_EDGES: GraphEdgeMeta[] = [
-  dataflow('demo-e1', 'demo-brandkb', 'demo-videogen'),
+  dataflow('demo-e1', 'demo-brandkb', 'demo-storyboard'),
   dataflow('demo-e2', 'demo-brandkb', 'demo-audiogen'),
-  dataflow('demo-e3', 'demo-icp', 'demo-videogen'),
+  dataflow('demo-e3', 'demo-icp', 'demo-storyboard'),
   dataflow('demo-e4', 'demo-icp', 'demo-audiogen'),
-  dataflow('demo-e5', 'demo-videogen', 'demo-composition'),
-  dataflow('demo-e6', 'demo-audiogen', 'demo-composition'),
-  dataflow('demo-e7', 'demo-composition', 'demo-scoring-1'),
-  dataflow('demo-e8', 'demo-composition', 'demo-editor'),
-  dataflow('demo-e9', 'demo-scoring-1', 'demo-editor'),
-  dataflow('demo-e10', 'demo-editor', 'demo-scoring-2'),
-  dataflow('demo-e11', 'demo-scoring-2', 'demo-delivery'),
+  dataflow('demo-e5', 'demo-storyboard', 'demo-videogen'),
+  dataflow('demo-e6', 'demo-videogen', 'demo-composition'),
+  dataflow('demo-e7', 'demo-audiogen', 'demo-composition'),
+  dataflow('demo-e8', 'demo-composition', 'demo-scoring-1'),
+  dataflow('demo-e9', 'demo-composition', 'demo-editor'),
+  dataflow('demo-e10', 'demo-scoring-1', 'demo-editor'),
+  dataflow('demo-e11', 'demo-editor', 'demo-scoring-2'),
+  dataflow('demo-e12', 'demo-scoring-2', 'demo-delivery'),
 ];
 
 /** Marketing: branching hero ad with b-roll. */
 const MARKETING_NODES: GraphNodeMeta[] = [
   seedNode('marketing-brandkb', 'Brand KB', 'brand_kb', 0, 0),
   seedNode('marketing-icp', 'ICP', 'icp', 1, 0),
-  seedNode('marketing-videogen-hero', 'Video Gen', 'video_gen', 2, -1, {
+  seedNode('marketing-storyboard', 'Storyboard', 'storyboard', 2, 0, {
+    subtype: 'frames',
+    metaTag: 'Storyboard frames',
+    data: { prompt: '', frameCount: 4, aspectRatio: '16:9', imageUrls: [] },
+  }),
+  seedNode('marketing-videogen-hero', 'Video Gen', 'video_gen', 3, -1, {
+    subtype: 'i2v',
+    metaTag: 'I2V hero (conditioned)',
+  }),
+  seedNode('marketing-videogen-broll', 'Video Gen', 'video_gen', 3, 1, {
     subtype: 'hero',
     metaTag: 'Hero shot',
   }),
-  seedNode('marketing-videogen-broll', 'Video Gen', 'video_gen', 2, 1, {
-    subtype: 'b-roll',
-    metaTag: 'B-roll',
-  }),
-  seedNode('marketing-audiogen', 'Audio Gen', 'audio_gen', 3, 0, {
+  seedNode('marketing-audiogen', 'Audio Gen', 'audio_gen', 4, 0, {
     subtype: 'voiceover',
     metaTag: 'Voiceover',
   }),
-  seedNode('marketing-composition', 'Composition', 'composition', 4, 0, {
+  seedNode('marketing-composition', 'Composition', 'composition', 5, 0, {
     subtype: 'MarketingArchetype',
     metaTag: 'MarketingArchetype',
   }),
-  seedNode('marketing-scoring-1', 'Scoring', 'scoring', 5, 0, {
+  seedNode('marketing-scoring-1', 'Scoring', 'scoring', 6, 0, {
     subtype: 'initial',
   }),
-  seedNode('marketing-editor', 'Editor', 'editor', 6, 0),
-  seedNode('marketing-scoring-2', 'Scoring', 'scoring', 7, 0, {
+  seedNode('marketing-editor', 'Editor', 'editor', 7, 0),
+  seedNode('marketing-scoring-2', 'Scoring', 'scoring', 8, 0, {
     subtype: 'rescore',
   }),
-  seedNode('marketing-delivery', 'Delivery', 'delivery', 8, 0),
+  seedNode('marketing-delivery', 'Delivery', 'delivery', 9, 0),
 ];
 
 // Closed-loop marketing: brand + ICP fan out to both generators; scoring's
 // REPORT feeds the editor (action items drive the edit decision); composition
 // feeds editor as source video; rescore loops back to editor on dependency.
 const MARKETING_EDGES: GraphEdgeMeta[] = [
-  dataflow('marketing-e1', 'marketing-brandkb', 'marketing-videogen-hero'),
-  dataflow('marketing-e2', 'marketing-brandkb', 'marketing-videogen-broll'),
-  dataflow('marketing-e3', 'marketing-brandkb', 'marketing-audiogen'),
-  dataflow('marketing-e4', 'marketing-icp', 'marketing-videogen-hero'),
-  dataflow('marketing-e5', 'marketing-icp', 'marketing-videogen-broll'),
-  dataflow('marketing-e6', 'marketing-icp', 'marketing-audiogen'),
-  dataflow('marketing-e7', 'marketing-videogen-hero', 'marketing-composition'),
-  dataflow('marketing-e8', 'marketing-videogen-broll', 'marketing-composition'),
-  dataflow('marketing-e9', 'marketing-audiogen', 'marketing-composition'),
-  dataflow('marketing-e10', 'marketing-composition', 'marketing-scoring-1'),
+  dataflow('marketing-e1', 'marketing-brandkb', 'marketing-storyboard'),
+  dataflow('marketing-e2', 'marketing-brandkb', 'marketing-audiogen'),
+  dataflow('marketing-e3', 'marketing-icp', 'marketing-storyboard'),
+  dataflow('marketing-e4', 'marketing-icp', 'marketing-audiogen'),
+  // Storyboard frames condition the i2v hero; plain hero takes brand/icp context
+  dataflow('marketing-e5', 'marketing-storyboard', 'marketing-videogen-hero'),
+  dataflow('marketing-e6', 'marketing-brandkb', 'marketing-videogen-broll'),
+  dataflow('marketing-e7', 'marketing-icp', 'marketing-videogen-broll'),
+  dataflow('marketing-e8', 'marketing-videogen-hero', 'marketing-composition'),
+  dataflow('marketing-e9', 'marketing-videogen-broll', 'marketing-composition'),
+  dataflow('marketing-e10', 'marketing-audiogen', 'marketing-composition'),
+  dataflow('marketing-e11', 'marketing-composition', 'marketing-scoring-1'),
   // Closed-loop: report + source video flow into editor
-  dataflow('marketing-e11', 'marketing-scoring-1', 'marketing-editor'),
-  dataflow('marketing-e12', 'marketing-composition', 'marketing-editor'),
-  dataflow('marketing-e13', 'marketing-editor', 'marketing-scoring-2'),
-  dataflow('marketing-e14', 'marketing-scoring-2', 'marketing-delivery'),
+  dataflow('marketing-e12', 'marketing-scoring-1', 'marketing-editor'),
+  dataflow('marketing-e13', 'marketing-composition', 'marketing-editor'),
+  dataflow('marketing-e14', 'marketing-editor', 'marketing-scoring-2'),
+  dataflow('marketing-e15', 'marketing-scoring-2', 'marketing-delivery'),
 ];
 
 /** Knowledge: 3-iteration explainer. */

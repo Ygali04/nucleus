@@ -42,6 +42,9 @@ import { GroupNode } from '@/components/canvas/nodes/GroupNode';
 import { ICPNode } from '@/components/canvas/nodes/ICPNode';
 import { ScoringNode } from '@/components/canvas/nodes/ScoringNode';
 import { VideoGenNode } from '@/components/canvas/nodes/VideoGenNode';
+import { SourceVideoNode } from '@/components/canvas/nodes/SourceVideoNode';
+import { StoryboardNode } from '@/components/canvas/nodes/StoryboardNode';
+import { ImageEditNode } from '@/components/canvas/nodes/ImageEditNode';
 import { DataFlowEdge } from '@/components/canvas/edges/DataFlowEdge';
 import { DependencyEdge } from '@/components/canvas/edges/DependencyEdge';
 import { TypedEdge } from '@/components/canvas/edges/TypedEdge';
@@ -55,6 +58,9 @@ const nodeTypes: NodeTypes = {
   brand_kb: BrandKBNode,
   icp: ICPNode,
   delivery: DeliveryNode,
+  source_video: SourceVideoNode,
+  storyboard: StoryboardNode,
+  image_edit: ImageEditNode,
   group: GroupNode,
 };
 

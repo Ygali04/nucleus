@@ -5,12 +5,14 @@ import { useCampaignsStore } from '@/store/campaigns-store';
 import type { GraphNodeKind } from '@/lib/types';
 
 const SWAP_TARGETS: Partial<Record<GraphNodeKind, GraphNodeKind[]>> = {
-  video_gen: ['audio_gen', 'editor'],
+  video_gen: ['audio_gen', 'editor', 'source_video'],
   audio_gen: ['video_gen', 'editor'],
   editor: ['video_gen', 'audio_gen'],
   composition: ['delivery'],
   scoring: ['delivery'],
   delivery: ['scoring'],
+  storyboard: ['image_edit'],
+  image_edit: ['storyboard'],
 };
 
 const KIND_LABEL: Record<GraphNodeKind, string> = {
@@ -23,6 +25,9 @@ const KIND_LABEL: Record<GraphNodeKind, string> = {
   brand_kb: 'Brand KB',
   icp: 'ICP',
   delivery: 'Delivery',
+  source_video: 'Source Video',
+  storyboard: 'Storyboard',
+  image_edit: 'Image Edit',
 };
 
 interface SwapTypeDropdownProps {

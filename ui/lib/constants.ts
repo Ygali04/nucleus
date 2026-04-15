@@ -4,10 +4,13 @@ import {
   Brain,
   Download,
   Film,
+  FileVideo,
+  Images,
   Layers,
   Package,
   PencilRuler,
   Target,
+  Wand,
 } from 'lucide-react';
 
 export const BRAND = {
@@ -42,6 +45,9 @@ export const NODE_ICON_MAP = {
   scoring: Brain,
   editor: PencilRuler,
   delivery: Package,
+  source_video: FileVideo,
+  storyboard: Images,
+  image_edit: Wand,
   download: Download,
 } as const;
 
