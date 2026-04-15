@@ -87,16 +87,75 @@ def reload_settings() -> Settings:
 
 
 # --- Backward-compat thin wrappers (callers from WU-J and WU-F) -------------
+def _bool_env(name: str) -> bool | None:
+    """Parse a boolean env var; return None when unset."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return None
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
 def is_mock() -> bool:
     """Return True when every provider should return canned fixtures.
 
     Reads live so tests that ``monkeypatch.setenv("NUCLEUS_MOCK_PROVIDERS", ...)``
     see the change without rebuilding the settings singleton.
     """
-    raw = os.environ.get("NUCLEUS_MOCK_PROVIDERS")
-    if raw is not None:
-        return raw.strip().lower() in ("1", "true", "yes", "on")
+    parsed = _bool_env("NUCLEUS_MOCK_PROVIDERS")
+    if parsed is not None:
+        return parsed
     return bool(settings.nucleus_mock_providers)
+
+
+def _mock_provider(name: str) -> bool:
+    """Per-provider mock flag. Defaults to ``is_mock()`` when unset."""
+    parsed = _bool_env(name)
+    if parsed is not None:
+        return parsed
+    return is_mock()
+
+
+def is_mock_video() -> bool:
+    """Whether the video tool (Kling/Seedance/Veo) should return mock data."""
+    return _mock_provider("NUCLEUS_MOCK_VIDEO")
+
+
+def is_mock_audio() -> bool:
+    """Whether the audio tool (ElevenLabs) should return mock data."""
+    return _mock_provider("NUCLEUS_MOCK_AUDIO")
+
+
+def is_mock_image() -> bool:
+    """Whether the image tool (flux/SiliconFlow) should return mock data."""
+    return _mock_provider("NUCLEUS_MOCK_IMAGE")
+
+
+def is_mock_music() -> bool:
+    """Whether the music tool (Lyria) should return mock data."""
+    return _mock_provider("NUCLEUS_MOCK_MUSIC")
+
+
+def is_mock_score() -> bool:
+    """Whether NeuroPeer scoring should return mock data."""
+    return _mock_provider("NUCLEUS_MOCK_SCORE")
+
+
+def is_mock_ruflo() -> bool:
+    """Whether the Ruflo brain (GLM) should be short-circuited."""
+    return _mock_provider("NUCLEUS_MOCK_RUFLO")
+
+
+def is_mock_comfyui() -> bool:
+    """Whether the ComfyUI workflow executor should return mock data.
+
+    Treated as "any generation mock is on" — if video, audio, image, or music
+    is mocked, we short-circuit the ComfyUI workflow runner too since every
+    generator funnels through it.
+    """
+    parsed = _bool_env("NUCLEUS_MOCK_COMFYUI")
+    if parsed is not None:
+        return parsed
+    return is_mock() or is_mock_video() or is_mock_audio() or is_mock_image() or is_mock_music()
 
 
 def fal_key() -> str:
@@ -166,6 +225,13 @@ __all__ = [
     "settings",
     "reload_settings",
     "is_mock",
+    "is_mock_video",
+    "is_mock_audio",
+    "is_mock_image",
+    "is_mock_music",
+    "is_mock_score",
+    "is_mock_ruflo",
+    "is_mock_comfyui",
     "fal_key",
     "elevenlabs_api_key",
     "google_cloud_project",

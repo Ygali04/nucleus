@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from nucleus.config import is_mock
+from nucleus.config import is_mock_music
 from nucleus.providers import get_provider
 from nucleus.tools.mock_fixtures import mock_audio_url
 from nucleus.tools.schemas import GenerateMusicRequest, GenerateMusicResponse
 
 
 async def generate_music(req: GenerateMusicRequest) -> GenerateMusicResponse:
-    if is_mock():
+    if is_mock_music():
         return GenerateMusicResponse(
             audio_url=mock_audio_url("music"),
             cost_usd=0.0,

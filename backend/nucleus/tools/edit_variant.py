@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from nucleus.tools.mock_fixtures import is_mock, mock_video_url
+from nucleus.config import is_mock_video
+from nucleus.tools.mock_fixtures import mock_video_url
 from nucleus.tools.schemas import EditVariantRequest, EditVariantResponse
 
 VALID_EDIT_TYPES = {
@@ -37,7 +38,7 @@ async def edit_variant(req: EditVariantRequest) -> EditVariantResponse:
             f"Unknown edit_type: {req.edit_type}. Valid: {sorted(VALID_EDIT_TYPES)}"
         )
 
-    cost = 0.0 if is_mock() else EDIT_COST.get(req.edit_type, 0.05)
+    cost = 0.0 if is_mock_video() else EDIT_COST.get(req.edit_type, 0.05)
 
     return EditVariantResponse(
         new_iteration_id=str(uuid4()),

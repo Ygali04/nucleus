@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from nucleus.config import is_mock
+from nucleus.config import is_mock_video
 from nucleus.providers import get_provider
 from nucleus.tools.mock_fixtures import mock_video_url
 from nucleus.tools.schemas import GenerateVideoRequest, GenerateVideoResponse
 
 
 async def generate_video(req: GenerateVideoRequest) -> GenerateVideoResponse:
-    if is_mock() or req.provider == "mock":
+    if is_mock_video() or req.provider == "mock":
         return GenerateVideoResponse(
             video_url=mock_video_url("gen"),
             cost_usd=0.0,

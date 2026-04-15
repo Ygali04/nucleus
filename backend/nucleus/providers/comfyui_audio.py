@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from nucleus.config import is_mock
+from nucleus.config import is_mock_audio as is_mock
 from nucleus.providers._comfyui_runtime import (
     cost_per_second_from_env,
     run_and_upload,

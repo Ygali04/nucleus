@@ -8,11 +8,13 @@ and hands it off to the existing Celery worker.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from nucleus.events import publish_event
 from nucleus.tools.schemas import ChatRequest, ChatResponse
@@ -26,7 +28,9 @@ from nucleus.models import (
     Job,
     JobState,
 )
+from nucleus.orchestrator.finalize import finalize_campaign
 from nucleus.orchestrator.planner import expand_brief
+from nucleus.orchestrator.suggestions import resolve_suggestion
 from nucleus.store import (
     delete_campaign,
     get_campaign,
@@ -197,19 +201,16 @@ async def execute_campaign(campaign_id: str) -> CampaignExecuteResponse:
 
 
 async def _run_and_finalize(job_id: str, campaign_id: str) -> None:
-    """Eager-mode driver: run the orchestrator, then generate deliverables."""
+    """Eager-mode driver: run the orchestrator, then generate deliverables.
+
+    Thin wrapper around :func:`run_job` + :func:`finalize_campaign` so both
+    the eager and Celery paths produce deliverables. The standalone
+    ``finalize_campaign`` lives in ``nucleus.orchestrator.finalize``.
+    """
     import os
     from nucleus.orchestrator.loop import run_job
-    from nucleus.tools.generate_gtm_strategy import generate_gtm_strategy
-    from nucleus.tools.generate_sop import generate_sop
-    from nucleus.tools.schemas import (
-        GenerateGtmStrategyRequest,
-        GenerateSopRequest,
-        StrategyVariant,
-    )
-    from nucleus.models import CampaignDeliverables
 
-    mock = os.getenv("NUCLEUS_MOCK_PROVIDERS", "true").lower() == "true"
+    mock = os.getenv("NUCLEUS_MOCK_PROVIDERS", "").lower() in ("1", "true", "yes")
     candidates = await list_candidates_for_job(job_id)
     candidate_ids = [c.id for c in candidates]
     await publish_event(job_id, "job.started", {"candidate_count": len(candidate_ids)})
@@ -219,75 +220,7 @@ async def _run_and_finalize(job_id: str, campaign_id: str) -> None:
         await publish_event(job_id, "job.failed", {"error": str(exc)})
         return
 
-    # Collect best variants per candidate to feed the strategist.
-    variants: list[StrategyVariant] = []
-    iterations_log: list[dict[str, Any]] = []
-    for cand in candidates:
-        iters = await list_iterations(cand.id)
-        if not iters:
-            continue
-        best = max(
-            iters,
-            key=lambda it: (it.score.neural_score if it.score else 0.0),
-        )
-        if best.score is None:
-            continue
-        variants.append(StrategyVariant(
-            video_url=best.video_url,
-            score=best.score.neural_score,
-            report=best.analysis_result or {},
-            cost_usd=sum(it.cost for it in iters),
-            iteration_count=len(iters),
-            icp=cand.icp,
-            platform=cand.platform,
-            archetype=cand.archetype,
-            language=cand.language,
-        ))
-        iterations_log.append({
-            "candidate_id": cand.id,
-            "icp": cand.icp,
-            "platform": cand.platform,
-            "iterations": len(iters),
-            "best_score": best.score.neural_score,
-        })
-
-    campaign = await get_campaign(campaign_id)
-    brand_name = campaign.brand_name
-    brand_kb = (campaign.brief or {}).get("brand_kb") or {"name": brand_name}
-    icp = (campaign.brief or {}).get("icp") or {}
-
-    try:
-        gtm = await generate_gtm_strategy(GenerateGtmStrategyRequest(
-            campaign_id=campaign_id,
-            variants=variants,
-            brand_name=brand_name,
-        ))
-        sop = await generate_sop(GenerateSopRequest(
-            campaign_id=campaign_id,
-            variants=variants,
-            brand_kb=brand_kb,
-            icp=icp,
-            iterations_log=iterations_log,
-            brand_name=brand_name,
-        ))
-        deliverables = CampaignDeliverables(
-            gtm_guide=gtm.gtm_guide,
-            sop_doc=sop.sop_doc,
-            strategy_summary=gtm.strategy_summary,
-            generated_at=datetime.now(timezone.utc),
-        )
-        await update_campaign(campaign_id, {
-            "status": "complete",
-            "deliverables": deliverables,
-        })
-        await publish_event(job_id, "campaign.delivered", {
-            "campaign_id": campaign_id,
-            "variants": len(variants),
-            "summary": gtm.strategy_summary[:200],
-        })
-    except Exception as exc:  # noqa: BLE001
-        await publish_event(job_id, "strategist.failed", {"error": str(exc)})
-
+    await finalize_campaign(job_id, campaign_id)
     await publish_event(job_id, "job.complete", {"job_id": job_id})
 
 
@@ -322,6 +255,61 @@ async def send_chat(campaign_id: str, req: ChatRequest) -> ChatResponse:
         {"campaign_id": campaign_id, "message": message},
     )
     return ChatResponse(status="queued")
+
+
+class SuggestionRejectBody(BaseModel):
+    feedback: str | None = None
+
+
+@router.post("/campaigns/{campaign_id}/suggestions/{suggestion_id}/approve")
+async def approve_suggestion(campaign_id: str, suggestion_id: str) -> dict[str, str]:
+    """Approve a pending ``canvas.node_suggested`` proposal.
+
+    Publishes ``canvas.node_approved`` so the Ruflo bridge (subscribed via
+    the event bus) commits the node and the orchestrator can resume.
+    """
+    handle = await resolve_suggestion(suggestion_id, approved=True)
+    if handle is None:
+        # Not yet registered — still publish so a late-arriving subscriber
+        # can react, but flag it for the caller.
+        await publish_event(campaign_id, "canvas.node_approved", {
+            "campaign_id": campaign_id,
+            "suggestion_id": suggestion_id,
+            "status": "approved",
+            "note": "no_pending_handle",
+        })
+        return {"status": "approved", "suggestion_id": suggestion_id, "known": "false"}
+    await publish_event(campaign_id, "canvas.node_approved", {
+        "campaign_id": campaign_id,
+        "suggestion_id": suggestion_id,
+        "status": "approved",
+    })
+    return {"status": "approved", "suggestion_id": suggestion_id, "known": "true"}
+
+
+@router.post("/campaigns/{campaign_id}/suggestions/{suggestion_id}/reject")
+async def reject_suggestion(
+    campaign_id: str,
+    suggestion_id: str,
+    body: SuggestionRejectBody | None = None,
+) -> dict[str, str]:
+    """Reject a pending suggestion; Ruflo will pick a different proposal."""
+    feedback = body.feedback if body else None
+    handle = await resolve_suggestion(
+        suggestion_id, approved=False, feedback=feedback
+    )
+    payload: dict[str, Any] = {
+        "campaign_id": campaign_id,
+        "suggestion_id": suggestion_id,
+        "status": "rejected",
+    }
+    if feedback:
+        payload["feedback"] = feedback
+    if handle is None:
+        payload["note"] = "no_pending_handle"
+    await publish_event(campaign_id, "canvas.node_rejected", payload)
+    return {"status": "rejected", "suggestion_id": suggestion_id,
+            "known": "true" if handle is not None else "false"}
 
 
 @router.get("/campaigns/{campaign_id}/reports", response_model=list[CampaignReport])

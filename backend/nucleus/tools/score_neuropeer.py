@@ -6,8 +6,8 @@ from uuid import uuid4
 
 from nucleus.clients.neuropeer import NeuroPeerClient
 from nucleus.clients.neuropeer_types import AnalysisResult
+from nucleus.config import is_mock_score
 from nucleus.tools.mock_fixtures import (
-    is_mock,
     mock_attention_curve,
     mock_key_moments,
     mock_metrics,
@@ -34,7 +34,7 @@ def _analysis_to_response(result: AnalysisResult) -> ScoreNeuroPeerResponse:
 async def score_neuropeer(req: ScoreNeuroPeerRequest) -> ScoreNeuroPeerResponse:
     # Key mock scores by parent_job_id (or video_url) so repeated scoring of the same
     # candidate family produces progressively higher scores — simulating loop improvement.
-    if is_mock():
+    if is_mock_score():
         candidate_key = req.parent_job_id or req.video_url
         score = progressive_score(candidate_key)
         return ScoreNeuroPeerResponse(

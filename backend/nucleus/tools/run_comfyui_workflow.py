@@ -18,7 +18,7 @@ from typing import Any
 from uuid import uuid4
 
 from nucleus import events
-from nucleus.config import is_mock
+from nucleus.config import is_mock_comfyui
 from nucleus.providers.comfyui_event_bridge import fanout_comfyui_events
 from nucleus.tools.schemas import (
     RunComfyUIWorkflowRequest,
@@ -101,7 +101,7 @@ async def _run_mock(req: RunComfyUIWorkflowRequest) -> RunComfyUIWorkflowRespons
 async def run_comfyui_workflow(
     req: RunComfyUIWorkflowRequest,
 ) -> RunComfyUIWorkflowResponse:
-    if is_mock():
+    if is_mock_comfyui():
         return await _run_mock(req)
 
     # Lazy imports: only pay the httpx/websockets/aioboto3 cost when we
