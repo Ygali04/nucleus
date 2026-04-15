@@ -40,10 +40,12 @@ class NeuroPeerClient:
         self.base_url = (base_url or config.neuropeer_base_url()).rstrip("/")
         self.timeout = timeout if timeout is not None else config.neuropeer_timeout_seconds()
         headers: dict[str, str] = {}
-        # Auth is currently disabled server-side; leave a hook for the future.
-        api_key = config.neuropeer_api_key()
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
+        # When NEUROPEER_API_KEY is set, authenticate with the X-API-Key header
+        # (and mirror it on the WS URL as ?api_key=... since FastAPI websockets
+        # don't expose custom headers to downstream middleware reliably).
+        self._api_key = config.neuropeer_api_key()
+        if self._api_key:
+            headers["X-API-Key"] = self._api_key
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             timeout=self.timeout,
@@ -169,12 +171,17 @@ class NeuroPeerClient:
         to ws/wss). If the caller passes an absolute ws:// URL we use it as-is.
         """
         if websocket_url and websocket_url.startswith(("ws://", "wss://")):
-            return websocket_url
-        ws_base = self.base_url.replace("https://", "wss://").replace("http://", "ws://")
-        path = websocket_url or f"/ws/job/{job_id}"
-        if not path.startswith("/"):
-            path = "/" + path
-        return f"{ws_base}{path}"
+            uri = websocket_url
+        else:
+            ws_base = self.base_url.replace("https://", "wss://").replace("http://", "ws://")
+            path = websocket_url or f"/ws/job/{job_id}"
+            if not path.startswith("/"):
+                path = "/" + path
+            uri = f"{ws_base}{path}"
+        if self._api_key:
+            sep = "&" if "?" in uri else "?"
+            uri = f"{uri}{sep}api_key={self._api_key}"
+        return uri
 
     async def stream_progress(
         self,
