@@ -12,6 +12,7 @@ import {
 } from '@/lib/api-client';
 import type {
   CampaignArchetype,
+  ChatMessage,
   GraphEdgeMeta,
   GraphNodeKind,
   GraphNodeMeta,
@@ -90,6 +91,7 @@ interface CampaignsState {
   swapNodeKind: (campaignId: string, nodeId: string, newKind: GraphNodeKind) => void;
   retryNode: (campaignId: string, nodeId: string) => void;
   openReportForIteration: (nodeId: string) => void;
+  appendChatMessage: (campaignId: string, message: ChatMessage) => void;
 }
 
 const nowIso = () => new Date().toISOString();
@@ -484,6 +486,27 @@ export const useCampaignsStore = create<CampaignsState>()(
 
       openReportForIteration: (_nodeId) => {
         // Stub: navigates to /reports?variant={id} once that hook is wired.
+      },
+
+      appendChatMessage: (campaignId, message) => {
+        set((s) => ({
+          campaigns: s.campaigns.map((c) => {
+            if (c.id !== campaignId) return c;
+            const brief = (c.brief ?? {}) as Record<string, unknown> & {
+              chat_history?: ChatMessage[];
+            };
+            const history = brief.chat_history ?? [];
+            if (history.some((m) => m.id === message.id)) return c;
+            return {
+              ...c,
+              brief: { ...brief, chat_history: [...history, message] },
+            };
+          }),
+        }));
+        schedulePersist(
+          () => get().campaigns.find((c) => c.id === campaignId),
+          campaignId,
+        );
       },
     }),
     {

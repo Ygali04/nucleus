@@ -153,6 +153,15 @@ export class NucleusAPIClient {
     return res.json() as Promise<CampaignExecuteResponse>;
   }
 
+  async sendChatMessage(campaignId: string, text: string): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/api/v1/campaigns/${campaignId}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text }),
+    });
+    if (!res.ok) throw new Error(`sendChatMessage failed: ${res.status}`);
+  }
+
   async listCampaignReports(id: string): Promise<CampaignReport[]> {
     const res = await fetch(`${this.baseUrl}/api/v1/campaigns/${id}/reports`);
     if (!res.ok) throw new Error(`listCampaignReports failed: ${res.status}`);
