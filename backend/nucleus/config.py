@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     google_cloud_project: str | None = None
     wavespeed_api_key: str | None = None
     atlas_cloud_api_key: str | None = None
+    siliconflow_key: str | None = None
+    glm_key: str | None = None
 
     # --- NeuroPeer ------------------------------------------------------------
     neuropeer_base_url: str = "http://localhost:8001"
@@ -117,6 +119,16 @@ def atlas_cloud_api_key() -> str:
     return os.environ.get("ATLAS_CLOUD_API_KEY") or settings.atlas_cloud_api_key or ""
 
 
+def siliconflow_key() -> str:
+    """Return the SiliconFlow API key (env live first, falls back to settings)."""
+    return os.environ.get("SILICONFLOW_KEY") or settings.siliconflow_key or ""
+
+
+def glm_key() -> str:
+    """Return the Zhipu GLM API key (env live first, falls back to settings)."""
+    return os.environ.get("GLM_KEY") or settings.glm_key or ""
+
+
 def neuropeer_base_url() -> str:
     """Base URL for NeuroPeer (defaults to local dev on port 8001, not 8000)."""
     # Read live so tests that monkeypatch env see the change.
@@ -159,6 +171,8 @@ __all__ = [
     "google_cloud_project",
     "wavespeed_api_key",
     "atlas_cloud_api_key",
+    "siliconflow_key",
+    "glm_key",
     "neuropeer_base_url",
     "neuropeer_timeout_seconds",
     "neuropeer_api_key",

@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Literal
 
 from nucleus.config import is_mock
+from nucleus.providers._image_protocol import ImageProvider, ImageResult
 from nucleus.providers._types import AudioProvider, AudioResult, MusicProvider
 from nucleus.providers.base import VideoProvider
 from nucleus.providers.comfyui_audio import ComfyUIAudioProvider
@@ -25,15 +26,16 @@ from nucleus.providers.lyria import LyriaProvider
 from nucleus.providers.magihuman import MagiHumanProvider
 from nucleus.providers.registry import ProviderRegistry, get_registry
 from nucleus.providers.seedance import SeedanceProvider
+from nucleus.providers.siliconflow_image import SiliconFlowImageProvider
 from nucleus.providers.types import GenerationResult, JobStatus, ProviderJobStatus
 
-ProviderKind = Literal["video", "audio", "music"]
+ProviderKind = Literal["video", "audio", "music", "image"]
 
 
 def get_provider(
     kind: ProviderKind,
     subtype: str | None = None,
-) -> VideoProvider | AudioProvider | MusicProvider:
+) -> VideoProvider | AudioProvider | MusicProvider | ImageProvider:
     """Return the provider instance matching *kind* + *subtype*.
 
     - ``kind`` is one of ``"video"``, ``"audio"``, ``"music"``.
@@ -60,6 +62,8 @@ def get_provider(
         return registry.get_audio_provider(name)
     if kind == "music":
         return registry.get_music_provider(name)
+    if kind == "image":
+        return registry.get_image_provider(name)
     raise ValueError(f"Unknown provider kind: {kind!r}")
 
 
@@ -82,6 +86,7 @@ def verify_provider_registry() -> dict[str, list[str]]:
         "video": sorted(registry._video_providers.keys()),
         "audio": sorted(registry._audio_providers.keys()),
         "music": sorted(registry._music_providers.keys()),
+        "image": sorted(registry._image_providers.keys()),
     }
     logger.info("Provider registry verified: %s", summary)
     return summary
@@ -93,6 +98,9 @@ __all__ = [
     "ComfyUIAudioProvider",
     "ComfyUIVideoProvider",
     "ElevenLabsProvider",
+    "ImageProvider",
+    "ImageResult",
+    "SiliconFlowImageProvider",
     "GenerationResult",
     "JobStatus",
     "LyriaProvider",

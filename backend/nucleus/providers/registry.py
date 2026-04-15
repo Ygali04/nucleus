@@ -11,8 +11,10 @@ from functools import lru_cache
 from typing import TypeVar
 
 from nucleus.config import is_mock as _use_mocks
+from nucleus.providers._image_protocol import ImageProvider
 from nucleus.providers.base import AudioProvider, MusicProvider, VideoProvider
 from nucleus.providers.mock import MockAudioProvider, MockMusicProvider, MockVideoProvider
+from nucleus.providers.siliconflow_image import SiliconFlowImageProvider
 
 _T = TypeVar("_T")
 
@@ -46,6 +48,7 @@ class ProviderRegistry:
         self._video_providers: dict[str, VideoProvider] = {}
         self._audio_providers: dict[str, AudioProvider] = {}
         self._music_providers: dict[str, MusicProvider] = {}
+        self._image_providers: dict[str, ImageProvider] = {}
         self._direct_sdk_mode: bool | None = None
 
         self._bootstrap()
@@ -60,6 +63,7 @@ class ProviderRegistry:
         self._video_providers["mock"] = MockVideoProvider()
         self._audio_providers["mock"] = MockAudioProvider()
         self._music_providers["mock"] = MockMusicProvider()
+        self._register_image_providers()
 
         if _use_mocks():
             # In mock mode every name routes to the mock provider.
@@ -208,6 +212,31 @@ class ProviderRegistry:
         provider = registry.get(name) or registry.get("mock")
         if provider is None:
             raise LookupError(f"No {kind} provider registered for '{name}'")
+        return provider
+
+    def _register_image_providers(self) -> None:
+        """Register image providers.
+
+        FLUX.1-Kontext-dev via SiliconFlow is the only one for now. It
+        handles both text-to-image and image-to-image; two keys map to the
+        same instance so callers can request by intent (``flux_t2i`` /
+        ``flux_i2i``) while only one provider is instantiated.
+        """
+        flux = SiliconFlowImageProvider()
+        self._image_providers["flux_t2i"] = flux
+        self._image_providers["flux_i2i"] = flux
+        self._image_providers["image:flux_t2i"] = flux
+        self._image_providers["image:flux_i2i"] = flux
+        self._image_providers["flux_kontext_dev"] = flux
+        self._image_providers["default"] = flux
+
+    def get_image_provider(self, name: str = "default") -> ImageProvider:
+        self._maybe_rebootstrap()
+        provider = self._image_providers.get(name) or self._image_providers.get(
+            "default"
+        )
+        if provider is None:
+            raise LookupError(f"No image provider registered for '{name}'")
         return provider
 
     def get_video_provider(self, name: str = "default") -> VideoProvider:
