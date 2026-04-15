@@ -40,6 +40,9 @@ const ADDABLE_KINDS: Array<{ kind: GraphNodeKind; label: string }> = [
   { kind: 'brand_kb', label: 'Brand KB' },
   { kind: 'icp', label: 'ICP' },
   { kind: 'delivery', label: 'Delivery' },
+  { kind: 'source_video', label: 'Source Video' },
+  { kind: 'storyboard', label: 'Storyboard' },
+  { kind: 'image_edit', label: 'Image Edit' },
 ];
 
 function isRunDisabled(campaign: Campaign): boolean {

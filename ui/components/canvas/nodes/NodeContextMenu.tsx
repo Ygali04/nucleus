@@ -23,6 +23,9 @@ const SWAP_KINDS: GraphNodeKind[] = [
   'brand_kb',
   'icp',
   'delivery',
+  'source_video',
+  'storyboard',
+  'image_edit',
 ];
 
 const HOVER_CLOSE_MS = 200;

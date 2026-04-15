@@ -252,6 +252,29 @@ export interface DeliveryNodeData extends NodeExecutionState {
   badgeText?: string;
 }
 
+export interface SourceVideoNodeData extends NodeExecutionState {
+  videoUrl?: string | null;
+  fileName?: string;
+  durationS?: number;
+  thumbnailUrl?: string | null;
+}
+
+export interface StoryboardNodeData extends NodeExecutionState {
+  prompt: string;
+  frameCount: number;
+  aspectRatio: string;
+  imageUrls: string[];
+  styleHints?: string;
+}
+
+export interface ImageEditNodeData extends NodeExecutionState {
+  operation: 'upscale' | 'theme_transition' | 'style_transfer' | 'text_to_image';
+  prompt: string;
+  referenceImageUrl?: string;
+  strength?: number;
+  outputImageUrl?: string | null;
+}
+
 export interface GraphNodeMeta {
   id: string;
   label: string;
