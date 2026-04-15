@@ -1,9 +1,11 @@
 'use client';
 
 import { useCampaignsStore } from '@/store/campaigns-store';
+import { getDefaultSystemPrompt } from '@/lib/system-prompt-defaults';
 import type { GraphNodeMeta } from '@/lib/types';
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
+import { SystemPromptEditor } from './SystemPromptEditor';
 import { Field, RadioRow } from './atoms';
 import { useNodeDraft } from './useNodeDraft';
 
@@ -13,6 +15,7 @@ const ARCHETYPES = ['Demo', 'Marketing', 'Knowledge', 'Education'] as const;
 
 interface CompositionDraft extends Record<string, unknown> {
   archetype: (typeof ARCHETYPES)[number];
+  systemPrompt?: string;
 }
 
 const DEFAULT: CompositionDraft = { archetype: 'Marketing' };
@@ -133,6 +136,12 @@ export function CompositionModal({
             />
           </div>
         </Field>
+
+        <SystemPromptEditor
+          defaultPrompt={getDefaultSystemPrompt('composition', draft)}
+          value={draft.systemPrompt}
+          onChange={(v) => patch({ systemPrompt: v })}
+        />
       </div>
     </NodeModalShell>
   );

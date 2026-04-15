@@ -20,6 +20,9 @@ const KIND_TO_NODE_TYPE: Record<GraphNodeMeta['kind'], string> = {
   brand_kb: 'brand_kb',
   icp: 'icp',
   delivery: 'delivery',
+  source_video: 'source_video',
+  storyboard: 'storyboard',
+  image_edit: 'image_edit',
   group: 'group',
 };
 

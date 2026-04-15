@@ -1,7 +1,9 @@
 'use client';
 
+import { getDefaultSystemPrompt } from '@/lib/system-prompt-defaults';
 import { NodeModalShell } from './NodeModalShell';
 import { ModalFooter } from './ModalFooter';
+import { SystemPromptEditor } from './SystemPromptEditor';
 import { Field, RadioRow, Slider, TextInput, Textarea } from './atoms';
 import { ProviderCardGrid, type ProviderCard } from './ProviderCardGrid';
 import { useNodeDraft } from './useNodeDraft';
@@ -32,6 +34,7 @@ interface AudioGenDraft extends Record<string, unknown> {
   genre: string;
   durationS: number;
   energy: number;
+  systemPrompt?: string;
 }
 
 const DEFAULT: AudioGenDraft = {
@@ -208,6 +211,12 @@ export function AudioGenModal({
             </Field>
           </>
         )}
+
+        <SystemPromptEditor
+          defaultPrompt={getDefaultSystemPrompt('audio_gen', draft)}
+          value={draft.systemPrompt}
+          onChange={(v) => patch({ systemPrompt: v })}
+        />
       </div>
     </NodeModalShell>
   );

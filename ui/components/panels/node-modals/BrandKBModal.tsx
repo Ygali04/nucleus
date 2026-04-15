@@ -1,6 +1,5 @@
 'use client';
 
-import { Book } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useCampaignsStore } from '@/store/campaigns-store';
 import {
@@ -9,9 +8,11 @@ import {
   saveAttachment,
   type AttachmentMeta,
 } from '@/lib/attachment-store';
+import { getDefaultSystemPrompt } from '@/lib/system-prompt-defaults';
 import { AttachmentDropzone } from './AttachmentDropzone';
 import { Field } from './Field';
 import { NodeModalShell } from './NodeModalShell';
+import { SystemPromptEditor } from './SystemPromptEditor';
 import { TagInput } from './TagInput';
 
 interface BrandKBModalProps {
@@ -30,6 +31,7 @@ interface BrandKBData {
   brandSound?: string;
   styleGuidelines?: string;
   attachments?: AttachmentMeta[];
+  systemPrompt?: string;
 }
 
 const INTEGRATIONS = ['Connect Notion', 'Connect Google Drive', 'Connect Slack'];
@@ -57,6 +59,7 @@ export function BrandKBModal({
   const [styleGuidelines, setStyleGuidelines] = useState('');
   const [attachmentMeta, setAttachmentMeta] = useState<AttachmentMeta[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+  const [systemPrompt, setSystemPrompt] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!open) return;
@@ -66,6 +69,7 @@ export function BrandKBModal({
     setEnergyLevel(existing?.energyLevel ?? []);
     setBrandSound(existing?.brandSound ?? '');
     setStyleGuidelines(existing?.styleGuidelines ?? '');
+    setSystemPrompt(existing?.systemPrompt);
     const prior = existing?.attachments ?? [];
     setAttachmentMeta(prior);
 
@@ -125,6 +129,7 @@ export function BrandKBModal({
       styleGuidelines,
       attachments: allMeta,
       docCount: allMeta.length,
+      systemPrompt,
       status: 'active',
       statusText: 'Complete',
     });
@@ -241,6 +246,15 @@ export function BrandKBModal({
             onChange={(event) => setStyleGuidelines(event.target.value)}
           />
         </Field>
+
+        <SystemPromptEditor
+          defaultPrompt={getDefaultSystemPrompt('brand_kb', {
+            brandName,
+            voiceTone: [...toneAdjectives, ...personality, ...energyLevel],
+          })}
+          value={systemPrompt}
+          onChange={setSystemPrompt}
+        />
       </div>
     </NodeModalShell>
   );

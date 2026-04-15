@@ -3,8 +3,10 @@
 import { Target } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useCampaignsStore } from '@/store/campaigns-store';
+import { getDefaultSystemPrompt } from '@/lib/system-prompt-defaults';
 import { Field } from './Field';
 import { NodeModalShell } from './NodeModalShell';
+import { SystemPromptEditor } from './SystemPromptEditor';
 import { TagInput } from './TagInput';
 
 interface ICPModalProps {
@@ -20,6 +22,7 @@ interface ICPData {
   painPoint?: string;
   desiredOutcome?: string;
   culturalMarkers?: string[];
+  systemPrompt?: string;
 }
 
 const PLATFORMS = [
@@ -45,6 +48,7 @@ export function ICPModal({ campaignId, nodeId, open, onClose }: ICPModalProps) {
   const [painPoint, setPainPoint] = useState('');
   const [desiredOutcome, setDesiredOutcome] = useState('');
   const [culturalMarkers, setCulturalMarkers] = useState<string[]>([]);
+  const [systemPrompt, setSystemPrompt] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!open) return;
@@ -53,6 +57,7 @@ export function ICPModal({ campaignId, nodeId, open, onClose }: ICPModalProps) {
     setPainPoint(existing?.painPoint ?? '');
     setDesiredOutcome(existing?.desiredOutcome ?? '');
     setCulturalMarkers(existing?.culturalMarkers ?? []);
+    setSystemPrompt(existing?.systemPrompt);
   }, [open, existing]);
 
   const handleSave = () => {
@@ -63,6 +68,7 @@ export function ICPModal({ campaignId, nodeId, open, onClose }: ICPModalProps) {
       painPoint,
       desiredOutcome,
       culturalMarkers,
+      systemPrompt,
       status: 'active',
       statusText: 'Complete',
     });
@@ -156,6 +162,16 @@ export function ICPModal({ campaignId, nodeId, open, onClose }: ICPModalProps) {
             placeholder="Slang, references, subcultures…"
           />
         </Field>
+
+        <SystemPromptEditor
+          defaultPrompt={getDefaultSystemPrompt('icp', {
+            personaName,
+            platform,
+            painPoint,
+          })}
+          value={systemPrompt}
+          onChange={setSystemPrompt}
+        />
       </div>
     </NodeModalShell>
   );
