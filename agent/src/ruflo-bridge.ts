@@ -23,7 +23,13 @@ import { fileURLToPath } from "node:url";
 
 import yaml from "js-yaml";
 
-import { bindToolHandlers } from "../tools/registry.js";
+import {
+  createGlmClient,
+  parseGlmJson,
+  type GlmClient,
+  type GlmMessage,
+} from "./glm-client.js";
+import { bindToolHandlers, TOOL_REGISTRY } from "../tools/registry.js";
 import type { NucleusToolSet } from "../tools/handlers/index.js";
 import type {
   EditType,
@@ -194,7 +200,7 @@ function pickEdit(score: ScoreNeuroPeerOutput): EditType {
 // ---------------------------------------------------------------------------
 
 const NODE_DX = 280;
-const ROW_DY = 220;
+const STARTER_ROW_DY = 220;
 
 const DEFAULT_VIDEO_SUBTYPE = (process.env.NUCLEUS_VIDEO_SUBTYPE ?? "kling") as VideoSubtype;
 const DEFAULT_AUDIO_SUBTYPE = process.env.NUCLEUS_AUDIO_SUBTYPE ?? "elevenlabs";
@@ -243,7 +249,7 @@ export async function* runSwarm(
   const buildEditor = opts.buildEditor ?? buildEditorWorkflow;
 
   const videoSubtype: VideoSubtype = candidate_spec.video_subtype ?? DEFAULT_VIDEO_SUBTYPE;
-  const baseY = candidate_spec.variant_index * ROW_DY;
+  const baseY = candidate_spec.variant_index * STARTER_ROW_DY;
   let col = 0;
   const nextX = (): number => {
     const x = col * NODE_DX;
@@ -515,4 +521,476 @@ function defaultPrompt(spec: CandidateSpec): string {
     `Generate a ${spec.platform} ${spec.archetype} ad for ICP=${spec.icp} ` +
     `in ${spec.language}. Variant ${spec.variant_index}.`
   );
+}
+
+// ---------------------------------------------------------------------------
+// Ruflo "brain" — GLM-backed helpers for initial pass, chat, and ceiling
+// ---------------------------------------------------------------------------
+
+/** Canvas node kinds Ruflo can seed on the canvas from a description. */
+export const STARTER_NODE_KINDS = [
+  "brand_kb",
+  "icp",
+  "source_video",
+  "storyboard",
+  "video_gen",
+  "audio_gen",
+  "composition",
+  "scoring",
+  "editor",
+  "delivery",
+  "image_edit",
+] as const;
+
+export type StarterNodeKind = (typeof STARTER_NODE_KINDS)[number];
+
+export interface StarterNodeProposal {
+  id?: string;
+  kind: StarterNodeKind;
+  label: string;
+  x?: number;
+  y?: number;
+  data?: Record<string, unknown>;
+}
+
+export interface StarterEdgeProposal {
+  from: string;
+  to: string;
+}
+
+export interface StarterGraph {
+  nodes: StarterNodeProposal[];
+  edges: StarterEdgeProposal[];
+  summary?: string;
+}
+
+export interface InitialPassInput {
+  campaign_id: string;
+  description: string;
+  archetype?: string;
+  brand_name?: string;
+}
+
+export interface InitialPassOptions {
+  glm?: GlmClient | null;
+  /** If true (default: env-driven), skip GLM entirely and use the fallback graph. */
+  mock?: boolean;
+}
+
+const COL_DX = 280;
+// (STARTER_ROW_DY is declared above in the canvas-layout block.)
+
+function isMockMode(opts: { mock?: boolean } = {}): boolean {
+  if (opts.mock !== undefined) return opts.mock;
+  return (process.env.NUCLEUS_MOCK_PROVIDERS ?? "").toLowerCase() === "true";
+}
+
+function starterEvent(
+  event_type: string,
+  campaign_id: string,
+  payload: Record<string, unknown>,
+): SwarmEvent {
+  return { event_type, job_id: campaign_id, campaign_id, ...payload };
+}
+
+/** Default seeded graph used when GLM is unavailable or in mock mode. */
+export function fallbackStarterGraph(input: InitialPassInput): StarterGraph {
+  const arch = (input.archetype ?? "marketing").toLowerCase();
+  const nodes: StarterNodeProposal[] = [
+    { id: "brand_kb",   kind: "brand_kb",   label: "Brand KB",     x: 0 * COL_DX, y: 0 * STARTER_ROW_DY, data: { name: input.brand_name ?? "" } },
+    { id: "icp",        kind: "icp",        label: "ICP",          x: 0 * COL_DX, y: 1 * STARTER_ROW_DY, data: {} },
+    { id: "source",     kind: "source_video", label: "Source",     x: 0 * COL_DX, y: 2 * STARTER_ROW_DY, data: {} },
+    { id: "storyboard", kind: "storyboard", label: "Storyboard",   x: 1 * COL_DX, y: 1 * STARTER_ROW_DY, data: { archetype: arch } },
+    { id: "video_a",    kind: "video_gen",  label: "Video Variant A", x: 2 * COL_DX, y: 0 * STARTER_ROW_DY, data: { prompt: input.description } },
+    { id: "video_b",    kind: "video_gen",  label: "Video Variant B", x: 2 * COL_DX, y: 2 * STARTER_ROW_DY, data: { prompt: input.description } },
+    { id: "score_a",    kind: "scoring",    label: "NeuroPeer A",  x: 3 * COL_DX, y: 0 * STARTER_ROW_DY, data: {} },
+    { id: "score_b",    kind: "scoring",    label: "NeuroPeer B",  x: 3 * COL_DX, y: 2 * STARTER_ROW_DY, data: {} },
+    { id: "delivery",   kind: "delivery",   label: "Delivery",     x: 4 * COL_DX, y: 1 * STARTER_ROW_DY, data: {} },
+  ];
+  const edges: StarterEdgeProposal[] = [
+    { from: "brand_kb",   to: "storyboard" },
+    { from: "icp",        to: "storyboard" },
+    { from: "source",     to: "storyboard" },
+    { from: "storyboard", to: "video_a" },
+    { from: "storyboard", to: "video_b" },
+    { from: "video_a",    to: "score_a" },
+    { from: "video_b",    to: "score_b" },
+  ];
+  return {
+    nodes,
+    edges,
+    summary:
+      `Seeded a ${arch} pipeline with 2 video variants, NeuroPeer scoring, and delivery. ` +
+      `Hit Run to start.`,
+  };
+}
+
+function buildInitialPassPrompt(input: InitialPassInput): string {
+  const toolNames = Object.keys(TOOL_REGISTRY).join(", ");
+  return [
+    `You are Ruflo, the planning brain of the Nucleus ad-generation canvas.`,
+    `Given a user's campaign description, propose a starter graph of 6-10 nodes wired into a video pipeline.`,
+    ``,
+    `Available tools: ${toolNames}.`,
+    `Available node kinds: ${STARTER_NODE_KINDS.join(", ")}.`,
+    `Archetype hint (optional): ${input.archetype ?? "unspecified"}.`,
+    `Brand name (optional): ${input.brand_name ?? "unspecified"}.`,
+    ``,
+    `Return STRICT JSON only, no commentary, matching this schema:`,
+    `{`,
+    `  "nodes": [{"id": "string", "kind": "<node kind>", "label": "string", "x": number, "y": number, "data": {}}],`,
+    `  "edges": [{"from": "node id", "to": "node id"}],`,
+    `  "summary": "1-2 sentence plain-English summary of the graph"`,
+    `}`,
+    `Positions use a ${COL_DX}px x ${STARTER_ROW_DY}px grid (column * ${COL_DX}, row * ${STARTER_ROW_DY}).`,
+    `Wire the graph left-to-right: inputs -> storyboard -> generators -> scorers -> delivery.`,
+  ].join("\n");
+}
+
+function normalizeStarterGraph(raw: unknown): StarterGraph {
+  if (!raw || typeof raw !== "object") throw new Error("non-object starter graph");
+  const r = raw as { nodes?: unknown; edges?: unknown; summary?: unknown };
+  const nodes = Array.isArray(r.nodes) ? r.nodes : [];
+  const edges = Array.isArray(r.edges) ? r.edges : [];
+  const allowed = new Set<string>(STARTER_NODE_KINDS);
+  const cleanNodes: StarterNodeProposal[] = nodes
+    .map((n: unknown, idx: number): StarterNodeProposal | null => {
+      if (!n || typeof n !== "object") return null;
+      const o = n as Record<string, unknown>;
+      const kind = String(o.kind ?? "");
+      if (!allowed.has(kind)) return null;
+      return {
+        id: typeof o.id === "string" ? o.id : `n_${idx}`,
+        kind: kind as StarterNodeKind,
+        label: typeof o.label === "string" ? o.label : kind,
+        x: typeof o.x === "number" ? o.x : (idx % 5) * COL_DX,
+        y: typeof o.y === "number" ? o.y : Math.floor(idx / 5) * STARTER_ROW_DY,
+        data: (o.data && typeof o.data === "object") ? (o.data as Record<string, unknown>) : {},
+      };
+    })
+    .filter((n): n is StarterNodeProposal => n !== null);
+  const cleanEdges: StarterEdgeProposal[] = edges
+    .map((e: unknown): StarterEdgeProposal | null => {
+      if (!e || typeof e !== "object") return null;
+      const o = e as Record<string, unknown>;
+      if (typeof o.from !== "string" || typeof o.to !== "string") return null;
+      return { from: o.from, to: o.to };
+    })
+    .filter((e): e is StarterEdgeProposal => e !== null);
+  return {
+    nodes: cleanNodes,
+    edges: cleanEdges,
+    summary: typeof r.summary === "string" ? r.summary : undefined,
+  };
+}
+
+/**
+ * Initial pass: translate a campaign description into a starter graph
+ * via GLM, streaming canvas events + a chat summary. Falls back to the
+ * deterministic seed graph on any failure.
+ */
+export async function* initialPass(
+  input: InitialPassInput,
+  opts: InitialPassOptions = {},
+): AsyncIterable<SwarmEvent> {
+  const { campaign_id } = input;
+  const glm = opts.glm === undefined ? createGlmClient() : opts.glm;
+
+  // fallbackReason: null = GLM-sourced graph; string = why we fell back.
+  // "mock_mode" and "no_glm_key" are intentional (no user-facing hint needed).
+  let graph: StarterGraph;
+  let fallbackReason: string | null = null;
+
+  if (isMockMode(opts)) {
+    graph = fallbackStarterGraph(input);
+    fallbackReason = "mock_mode";
+  } else if (glm === null) {
+    graph = fallbackStarterGraph(input);
+    fallbackReason = "no_glm_key";
+  } else {
+    yield starterEvent("chat.thinking", campaign_id, { message: "Planning starter graph..." });
+    try {
+      const raw = await glm.callGLM(
+        buildInitialPassPrompt(input),
+        [{ role: "user", content: input.description }],
+        { responseFormat: "json", temperature: 0.3 },
+      );
+      graph = normalizeStarterGraph(parseGlmJson(raw));
+      if (graph.nodes.length === 0) {
+        throw new Error("GLM returned zero nodes");
+      }
+    } catch (err) {
+      fallbackReason = err instanceof Error ? err.message : String(err);
+      graph = fallbackStarterGraph(input);
+    }
+  }
+
+  // Emit canvas events for each starter node and edge.
+  const idBySourceId = new Map<string, string>();
+  for (const node of graph.nodes) {
+    const nid = `${campaign_id}-${node.kind}-${rand4()}`;
+    if (node.id) idBySourceId.set(node.id, nid);
+    yield starterEvent("canvas.node_added", campaign_id, {
+      node: {
+        id: nid,
+        kind: node.kind,
+        subtype: node.kind,
+        label: node.label,
+        x: node.x ?? 0,
+        y: node.y ?? 0,
+        data: node.data ?? {},
+      },
+    });
+  }
+  for (const edge of graph.edges) {
+    const source = idBySourceId.get(edge.from);
+    const target = idBySourceId.get(edge.to);
+    if (!source || !target) continue;
+    yield starterEvent("canvas.edge_added", campaign_id, {
+      edge: {
+        id: edgeId(source, target),
+        source,
+        target,
+        kind: "dataflow",
+      },
+    });
+  }
+
+  const summary = graph.summary
+    ?? `I set up a pipeline with ${graph.nodes.length} nodes. Hit Run to start.`;
+  // Only surface "fell back" to the user if the cause was a real error, not a
+  // deliberate mock-mode / missing-key config.
+  const isRealFallback = fallbackReason !== null
+    && fallbackReason !== "mock_mode"
+    && fallbackReason !== "no_glm_key";
+  const message = isRealFallback
+    ? `${summary} (fell back to seed graph: ${fallbackReason})`
+    : summary;
+  yield starterEvent("chat.assistant_message", campaign_id, {
+    message,
+    used_fallback: fallbackReason !== null,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Chat routing
+// ---------------------------------------------------------------------------
+
+export interface ChatRouteInput {
+  campaign_id: string;
+  user_message: string;
+  /** Current graph snapshot (nodes/edges) as known by the UI. */
+  graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+  /** Recent execution events for context. */
+  recent_events?: Array<Record<string, unknown>>;
+  /** Prior chat turns for multi-turn context. */
+  history?: GlmMessage[];
+}
+
+export interface ChatRouteOptions {
+  glm?: GlmClient | null;
+  mock?: boolean;
+}
+
+interface ChatAction {
+  type: "reply" | "update_node" | "add_node" | "add_edge" | "run_campaign";
+  message?: string;
+  node_id?: string;
+  patch?: Record<string, unknown>;
+  node?: StarterNodeProposal;
+  source?: string;
+  target?: string;
+}
+
+function buildChatPrompt(input: ChatRouteInput): string {
+  const graphDigest = input.graph
+    ? `Current graph: ${input.graph.nodes.length} nodes, ${input.graph.edges.length} edges.`
+    : "Current graph: unknown.";
+  const evDigest = input.recent_events?.length
+    ? `Last ${input.recent_events.length} events: ${input.recent_events
+        .slice(-5)
+        .map((e) => e.event_type ?? "?")
+        .join(", ")}.`
+    : "No recent events.";
+  return [
+    `You are Ruflo, the chat brain of the Nucleus canvas.`,
+    `The user is chatting with you about their active campaign graph.`,
+    graphDigest,
+    evDigest,
+    ``,
+    `Reply with STRICT JSON, no prose: {"actions": [...]}.`,
+    `Each action is one of:`,
+    `  {"type": "reply", "message": "..."}`,
+    `  {"type": "update_node", "node_id": "...", "patch": {...}}`,
+    `  {"type": "add_node", "node": {"kind": "...", "label": "...", "x": n, "y": n, "data": {}}}`,
+    `  {"type": "add_edge", "source": "...", "target": "..."}`,
+    `  {"type": "run_campaign"}`,
+    `Prefer a short natural-language reply action even when you also change the graph.`,
+  ].join("\n");
+}
+
+function fallbackChatActions(input: ChatRouteInput): ChatAction[] {
+  const msg = input.user_message.toLowerCase();
+  if (/\b(run|start|go|launch)\b/.test(msg)) {
+    return [
+      { type: "reply", message: "Starting the campaign now." },
+      { type: "run_campaign" },
+    ];
+  }
+  return [
+    {
+      type: "reply",
+      message:
+        "Got it — I'll keep that in mind. (GLM isn't reachable so I can't edit the graph autonomously right now.)",
+    },
+  ];
+}
+
+/**
+ * Handle one user chat message, emitting canvas + chat events.
+ * Falls back to a stub reply when GLM is unavailable.
+ */
+export async function* runChat(
+  input: ChatRouteInput,
+  opts: ChatRouteOptions = {},
+): AsyncIterable<SwarmEvent> {
+  const { campaign_id } = input;
+  const glm = opts.glm === undefined ? createGlmClient() : opts.glm;
+
+  let actions: ChatAction[];
+  if (isMockMode(opts) || glm === null) {
+    actions = fallbackChatActions(input);
+  } else {
+    yield starterEvent("chat.thinking", campaign_id, { message: "Ruflo is thinking..." });
+    try {
+      const history = input.history ?? [];
+      const raw = await glm.callGLM(
+        buildChatPrompt(input),
+        [...history, { role: "user", content: input.user_message }],
+        { responseFormat: "json", temperature: 0.5 },
+      );
+      const parsed = parseGlmJson<{ actions?: ChatAction[] }>(raw);
+      actions = Array.isArray(parsed.actions) ? parsed.actions : [];
+      if (actions.length === 0) {
+        actions = [{ type: "reply", message: String(raw).slice(0, 500) }];
+      }
+    } catch (err) {
+      actions = [
+        {
+          type: "reply",
+          message:
+            `I couldn't reach my planner (${err instanceof Error ? err.message : String(err)}). ` +
+            `Try again in a moment.`,
+        },
+      ];
+    }
+  }
+
+  for (const action of actions) {
+    switch (action.type) {
+      case "reply":
+        yield starterEvent("chat.assistant_message", campaign_id, {
+          message: action.message ?? "",
+        });
+        break;
+      case "update_node":
+        if (action.node_id) {
+          yield starterEvent("canvas.node_updated", campaign_id, {
+            node_id: action.node_id,
+            patch: action.patch ?? {},
+          });
+        }
+        break;
+      case "add_node":
+        if (action.node && action.node.kind) {
+          const nid = `${campaign_id}-${action.node.kind}-${rand4()}`;
+          yield starterEvent("canvas.node_added", campaign_id, {
+            node: {
+              id: nid,
+              kind: action.node.kind,
+              subtype: action.node.kind,
+              label: action.node.label ?? action.node.kind,
+              x: action.node.x ?? 0,
+              y: action.node.y ?? 0,
+              data: action.node.data ?? {},
+            },
+          });
+        }
+        break;
+      case "add_edge":
+        if (action.source && action.target) {
+          yield starterEvent("canvas.edge_added", campaign_id, {
+            edge: {
+              id: edgeId(action.source, action.target),
+              source: action.source,
+              target: action.target,
+              kind: "dataflow",
+            },
+          });
+        }
+        break;
+      case "run_campaign":
+        yield starterEvent("campaign.run_requested", campaign_id, {});
+        break;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ceiling handling
+// ---------------------------------------------------------------------------
+
+export interface CeilingInput {
+  campaign_id: string;
+  variant_index: number;
+  final_score: number;
+  threshold: number;
+  max_iterations: number;
+  last_scoring_node_id: string;
+  delivery_node_id: string;
+}
+
+/**
+ * Emit a chat message + a delivery edge when a variant hits the iteration
+ * ceiling without reaching the threshold. Paused: the run-loop should
+ * await user input before continuing.
+ */
+export function* ceilingHit(input: CeilingInput): Iterable<SwarmEvent> {
+  const {
+    campaign_id,
+    variant_index,
+    final_score,
+    threshold,
+    max_iterations,
+    last_scoring_node_id,
+    delivery_node_id,
+  } = input;
+
+  const score = Number.isFinite(final_score) ? final_score.toFixed(1) : "n/a";
+  const msg =
+    `Variant ${variant_index} hit the ${max_iterations}-iteration ceiling at score ${score} ` +
+    `(threshold: ${threshold.toFixed(1)}). I'm sending it to delivery anyway — the GTM guide ` +
+    `will note this. Want me to continue iterating, lower the threshold, or accept the current variants?`;
+
+  yield starterEvent("chat.assistant_message", campaign_id, {
+    message: msg,
+    ceiling_hit: true,
+    variant_index,
+    final_score,
+    threshold,
+  });
+  yield starterEvent("canvas.edge_added", campaign_id, {
+    edge: {
+      id: edgeId(last_scoring_node_id, delivery_node_id),
+      source: last_scoring_node_id,
+      target: delivery_node_id,
+      kind: "dataflow",
+    },
+  });
+  yield starterEvent("campaign.paused", campaign_id, {
+    reason: "ceiling",
+    variant_index,
+    final_score,
+    threshold,
+  });
 }

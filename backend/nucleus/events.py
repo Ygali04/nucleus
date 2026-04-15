@@ -22,6 +22,42 @@ from uuid import uuid4
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Event type catalogue
+# ---------------------------------------------------------------------------
+#
+# Canonical list of event types published on the Nucleus bus. New event
+# types MUST be registered here (and documented) so consumers (UI, tests,
+# Ruflo bridge) stay in sync.
+
+TYPES: dict[str, str] = {
+    # --- Job / campaign lifecycle ---
+    "job.planning": "Brief accepted, planner expanding into candidates.",
+    "job.queued": "Job queued for the Celery worker.",
+    "campaign.run_requested": "Ruflo (or the user) asked to start executing a campaign.",
+    "campaign.paused": "Execution paused awaiting user input (e.g. ceiling hit).",
+    # --- Candidate / iteration lifecycle ---
+    "candidate.generating": "Generator is producing the current iteration.",
+    "candidate.scored": "NeuroPeer scored the current iteration.",
+    "candidate.edited": "Editor produced a new iteration.",
+    "candidate.editing": "Editor started on a new iteration (mock path).",
+    "candidate.delivering": "Candidate is being finalized for delivery.",
+    "candidate.delivered": "Candidate delivered (may include ceiling-hit note).",
+    "candidate.complete": "Candidate fully done — bridge path only.",
+    "candidate.failed": "Candidate failed.",
+    "iteration.evaluated": "Evaluator's stop-decision for this iteration.",
+    "swarm.started": "Ruflo swarm started for a candidate.",
+    # --- Chat (Ruflo <-> user) ---
+    "chat.user_message": "User sent a chat message for the active campaign.",
+    "chat.assistant_message": "Ruflo replied to the user in chat.",
+    "chat.thinking": "Ruflo is drafting a reply (UI typing indicator).",
+    # --- Canvas updates driven by Ruflo ---
+    "canvas.node_added": "Ruflo (or the user) added a node to the canvas.",
+    "canvas.node_updated": "Ruflo (or the user) patched a node on the canvas.",
+    "canvas.edge_added": "Ruflo (or the user) wired an edge on the canvas.",
+}
+
+
+# ---------------------------------------------------------------------------
 # In-process event bus
 # ---------------------------------------------------------------------------
 

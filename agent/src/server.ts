@@ -9,11 +9,11 @@
  * on the host so Python's RUFLO_BRIDGE_URL resolves.
  */
 
-import express, { type Request, type Response } from "express";
+import express, { type Express, type Request, type Response } from "express";
 
 import { runSwarm, type SwarmEvent, type SwarmRequest } from "./ruflo-bridge.js";
 
-const app = express();
+const app: Express = express();
 app.use(express.json({ limit: "10mb" }));
 
 app.get("/health", (_req: Request, res: Response) => {
