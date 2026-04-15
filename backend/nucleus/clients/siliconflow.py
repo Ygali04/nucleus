@@ -20,7 +20,7 @@ from typing import Any
 import httpx
 
 DEFAULT_BASE_URL = "https://api.siliconflow.com/v1"
-DEFAULT_MODEL = "black-forest-labs/FLUX.1-Kontext-dev"
+DEFAULT_MODEL = "black-forest-labs/FLUX.1-schnell"
 
 
 class SiliconFlowError(RuntimeError):

@@ -65,7 +65,39 @@ async def score_neuropeer(req: ScoreNeuroPeerRequest) -> ScoreNeuroPeerResponse:
     async with NeuroPeerClient() as client:
         result = await client.submit_and_wait(
             req.video_url,
-            content_type=req.content_type,
+            content_type=_map_content_type(req.content_type),
             parent_job_id=req.parent_job_id,
         )
     return _analysis_to_response(result)
+
+
+# Nucleus callers pass platform names ("tiktok", "shorts"); NeuroPeer expects
+# its own taxonomy. Map the common ones; fall through otherwise so a caller
+# can pass a NeuroPeer value directly if they know what they want.
+_CONTENT_TYPE_MAP = {
+    "tiktok": "instagram_reel",
+    "reels": "instagram_reel",
+    "instagram": "instagram_reel",
+    "shorts": "instagram_reel",
+    "youtube": "youtube_preroll",
+    "youtube_shorts": "instagram_reel",
+    "linkedin": "brand_commercial",
+    "x": "brand_commercial",
+    "twitter": "brand_commercial",
+    "ad": "brand_commercial",
+    "commercial": "brand_commercial",
+    "marketing": "brand_commercial",
+}
+
+_NEUROPEER_CONTENT_TYPES = {
+    "instagram_reel", "product_demo", "youtube_preroll", "conference_talk",
+    "podcast_audio", "music_video", "brand_commercial", "tutorial_screencast",
+    "testimonial", "educational_lecture", "live_stream_clip", "custom",
+}
+
+
+def _map_content_type(value: str) -> str:
+    normalized = (value or "").strip().lower()
+    if normalized in _NEUROPEER_CONTENT_TYPES:
+        return normalized
+    return _CONTENT_TYPE_MAP.get(normalized, "custom")

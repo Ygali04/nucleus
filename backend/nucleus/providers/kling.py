@@ -46,9 +46,11 @@ class KlingVideoProvider:
     ) -> GenerationResult:
         model = _MODEL_IMAGE_TO_VIDEO if reference_image else _MODEL_TEXT_TO_VIDEO
 
+        # Kling expects an integer-seconds string in {"3"..."15"}. Clamp + round.
+        clamped = max(3, min(15, round(duration_s)))
         arguments: dict = {
             "prompt": prompt,
-            "duration": str(duration_s),
+            "duration": str(clamped),
             "aspect_ratio": aspect_ratio,
         }
         if reference_image:

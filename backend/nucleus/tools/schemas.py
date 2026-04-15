@@ -29,7 +29,8 @@ class GenerateVideoResponse(BaseModel):
 
 class GenerateAudioRequest(BaseModel):
     text: str
-    voice_id: str = "default"
+    # "Rachel" — ElevenLabs' default library voice, available on every account.
+    voice_id: str = "21m00Tcm4TlvDq8ikWAM"
     language: str = "en"
 
 
